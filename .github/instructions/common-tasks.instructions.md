@@ -254,7 +254,7 @@ Requirements:
 - For endpoints with path params: invalid format data-driven loop (numeric, boolean-like, special chars, SQL injection)
 - For endpoints with auth: 401 (no token) and 403 (wrong role) tests
 - For all endpoints: at least one 405 test with unsupported HTTP method
-- Any test that would fail due to API bug: test.skip + /* eslint-disable playwright/no-skipped-test */ + // FIXME: <ticket-url>, never omit
+- Any test that would fail due to API bug: test.skip + // FIXME: <ticket-url> + // eslint-disable-next-line playwright/no-skipped-test (directly above the skip), never omit
 ```
 
 ### API Schema Tasks

@@ -23,7 +23,7 @@ Actions:
 1. **Phase 1** — `Schema.parse(body)` failed at `data.role`.
 2. **Phase 2** — `ZodError` → contract drift.
 3. **Phase 4 (UI Mode → Network tab)** — the response shows `role: 'administrator'`. The OpenAPI spec is the source of truth; if the spec still says `'admin' | 'user'`, this is a backend bug.
-4. **Phase 5** — Per `api-testing` Phase 7: keep the test as the spec says, wrap with `test.skip` + `/* eslint-disable playwright/no-skipped-test */` + `// FIXME: <ticket-url>`. **Do not** loosen the schema. If the spec was updated to include `'administrator'`, update the enum and follow `refactor-values`.
+4. **Phase 5** — Per `api-testing` Phase 7: keep the test as the spec says, wrap with `test.skip` + `// FIXME: <ticket-url>` + `// eslint-disable-next-line playwright/no-skipped-test`. **Do not** loosen the schema. If the spec was updated to include `'administrator'`, update the enum and follow `refactor-values`.
 5. **Phase 6** — Re-run.
 
 ## Example 3: Test passes alone, fails in suite

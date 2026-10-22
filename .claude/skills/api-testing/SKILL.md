@@ -265,7 +265,7 @@ For every endpoint × HTTP method combination, tests **MUST** cover **every stat
 - Auth tokens: `process.env.ACCESS_TOKEN` (full permissions), `process.env.ACCESS_TOKEN_ZERO` (zero permissions)
 - Config: `process.env.API_URL` + `/api/X` — never bare `process.env.API_URL`
 - Cleanup: `afterAll` in POST describes (holds `resourceId` from the happy-path test); `afterAll` in GET/PUT/DELETE describes (resource created in `beforeAll`)
-- When a `test.skip` is needed due to a backend bug: add `// FIXME: <ticket-url>` comment + `/* eslint-disable playwright/no-skipped-test */` above it
+- When a `test.skip` is needed due to a backend bug: add a `// FIXME: <ticket-url>` comment and `// eslint-disable-next-line playwright/no-skipped-test` directly above it (next-line form, so the rule stays active for the rest of the file)
 - Tag: `@api` for API tests (check real tag in existing spec files for other areas)
 
 ### Phase 6: Add per-field negative / validation coverage
@@ -306,8 +306,8 @@ When the API's actual behavior differs from the OpenAPI spec or from the expecte
 3. **Wrap it with `test.skip`** and add a `// FIXME:` comment explaining the discrepancy:
 
 ```typescript
-/* eslint-disable playwright/no-skipped-test */
 // FIXME: API returns 500 instead of 422 for invalid price on PUT. Backend bug.
+// eslint-disable-next-line playwright/no-skipped-test
 test.skip(
     'should return 422 when price is a non-numeric string',
     { tag: '@api' },

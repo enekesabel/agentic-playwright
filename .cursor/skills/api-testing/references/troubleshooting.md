@@ -16,7 +16,7 @@
 ## Actual status code differs from the OpenAPI spec
 
 **Cause:** Backend bug or spec drift.
-**Fix:** Follow Phase 7 — keep the test as the spec says, wrap with `test.skip`, add `/* eslint-disable playwright/no-skipped-test */` and a `// FIXME: <ticket-url>` comment. Never change the expected status to match the bug.
+**Fix:** Follow Phase 7 — keep the test as the spec says, wrap with `test.skip`, add a `// FIXME: <ticket-url>` comment and `// eslint-disable-next-line playwright/no-skipped-test` directly above it. Never change the expected status to match the bug.
 
 ## Only an empty-body `400` test exists for a POST/PUT/PATCH
 
@@ -25,7 +25,7 @@
 
 ## ESLint fails with `playwright/no-skipped-test` on an intentional `test.skip`
 
-**Fix:** Add `/* eslint-disable playwright/no-skipped-test */` directly above the `test.skip(...)`, together with a `// FIXME: <ticket-url>` comment explaining why.
+**Fix:** Add `// eslint-disable-next-line playwright/no-skipped-test` directly above the `test.skip(...)`, together with a `// FIXME: <ticket-url>` comment explaining why. Use the next-line form, not a file-level `/* eslint-disable */`, so any further skip in the file is still reported.
 
 ## A test fails or behaves unexpectedly during Phase 7 (verify) and I need to investigate
 
