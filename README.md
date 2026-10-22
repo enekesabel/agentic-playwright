@@ -952,7 +952,7 @@ Use semantic locators in this order of preference:
 3. `page.getByPlaceholder()` -- Placeholder text
 4. `page.getByText()` -- Text content
 5. `page.getByTestId()` -- Test IDs (fallback)
-6. `page.locator()` -- CSS/XPath (last resort)
+6. `page.locator()` -- CSS only, as an absolute last resort. XPath is forbidden (see [WON'T: No XPath](#wont-forbidden))
 
 ### Registering Page Objects
 
@@ -1318,7 +1318,7 @@ npm run check:version
 ### Page Object Guidelines
 
 1. **Locators as Getters** -- Use `get` accessors for all locators
-2. **Semantic Locators** -- Prefer `getByRole`, `getByLabel` over CSS/XPath
+2. **Semantic Locators** -- Prefer `getByRole`, `getByLabel` over CSS. Never XPath
 3. **Three Locator Sections** -- Every page object should have: interactive element locators, feedback/validation message locators, and action methods
 4. **Action Methods** -- Methods should represent complete user flows
 5. **JSDoc on Actions Only** -- Add JSDoc with `@param` and `@returns` to action methods only. Never add JSDoc to locator getters.
@@ -1359,13 +1359,13 @@ This repository follows a strict architecture designed for **deterministic Playw
 
 ### SHOULD (Recommended)
 
-| Rule                | Description                                                                                     |
-| ------------------- | ----------------------------------------------------------------------------------------------- |
-| **Data Generation** | Use Faker via factories in `test-data/factories/` for happy-path data to ensure test isolation. |
-| **Test Isolation**  | Tests should be independent. Use `test.beforeEach` for setup, not shared state between tests.   |
-| **Test Steps**      | Use `test.step()` with Given/When/Then structure for better readability and reporting.          |
-| **Comments**        | Add JSDoc comments to all public methods explaining parameters and return values.               |
-| **Enums**           | Use enums from `enums/` for repeated string values (roles, routes, messages).                   |
+| Rule                 | Description                                                                                           |
+| -------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Data Generation**  | Use Faker via factories in `test-data/factories/` for happy-path data to ensure test isolation.       |
+| **Test Isolation**   | Tests should be independent. Use `test.beforeEach` for setup, not shared state between tests.         |
+| **Test Steps**       | Use `test.step()` with Given/When/Then structure for better readability and reporting.                |
+| **JSDoc on Actions** | Add JSDoc comments (with `@param` and `@returns`) to action methods only -- never on locator getters. |
+| **Enums**            | Use enums from `enums/` for repeated string values (roles, routes, messages).                         |
 
 ### WON'T (Forbidden)
 
@@ -1374,7 +1374,7 @@ This repository follows a strict architecture designed for **deterministic Playw
 | **No XPath**                     | NEVER use XPath selectors. They are brittle and unreadable.                                                                                                                                                                                                                                                                                                                                                              |
 | **No Hard Waits**                | NEVER use `page.waitForTimeout()`. Use web-first assertions (e.g., `await expect(locator).toBeVisible()`).                                                                                                                                                                                                                                                                                                               |
 | **No Magic Numbers**             | Define timeouts and constants in `config/` or `enums/`.                                                                                                                                                                                                                                                                                                                                                                  |
-| **No `any` Type**                | Avoid `any` type in TypeScript. Use strictly typed interfaces or Zod schemas.                                                                                                                                                                                                                                                                                                                                            |
+| **No `any` Type**                | NEVER use `any`. Use strictly typed interfaces, Zod schemas, or `unknown` at boundaries.                                                                                                                                                                                                                                                                                                                                 |
 | **No Manual Instantiation**      | NEVER create page objects with `new PageObject(page)` inside test files. Use fixtures.                                                                                                                                                                                                                                                                                                                                   |
 | **No Hardcoded Secrets**         | NEVER commit credentials, API keys, or environment-specific URLs. Use `process.env`.                                                                                                                                                                                                                                                                                                                                     |
 | **No Tags on Describe**          | NEVER put tags in `test.describe()`. Apply tags only to individual tests via `{ tag: '@...' }`.                                                                                                                                                                                                                                                                                                                          |
