@@ -51,7 +51,7 @@ After generating code, confirm each box:
 
 - [ ] Imports are from `fixtures/pom/test-options.ts` (never `@playwright/test` in specs)
 - [ ] Paths, credentials, and endpoints come from `process.env.*` and `enums/{area}/*` — nothing hardcoded
-- [ ] Locators use `getByRole` / `getByLabel` / `getByTestId` — no XPath
+- [ ] Locators follow the priority order `getByRole` > `getByLabel` > `getByPlaceholder` > `getByText` > `getByTestId` — no XPath
 - [ ] No `any` types
 - [ ] No hard waits (`waitForTimeout`)
 - [ ] No JSDoc on locator getters/methods (JSDoc only on action methods)
@@ -131,7 +131,7 @@ Create a new page object for [PAGE NAME] with the following elements:
 
 Requirements:
 - File location: pages/{area}/[name].page.ts  (run `ls pages/` first to find real area name)
-- Use semantic locators (getByRole > getByLabel > getByTestId)
+- Use semantic locators in priority order (getByRole > getByLabel > getByPlaceholder > getByText > getByTestId); never XPath
 - NO JSDoc on locator getters/methods
 - JSDoc with @param and @returns on action methods only
 - Register in fixtures/pom/page-object-fixture.ts
@@ -163,7 +163,7 @@ Include proper return type and JSDoc comment.
 
 ### Test Tasks
 
-> **Important:** Before generating tests, navigate through the user flow to understand the actual steps and expected outcomes.
+> **Important:** Before generating UI tests, explore the user flow with `playwright-cli` (the only sanctioned exploration tool; see the `playwright-cli` skill) to capture the actual steps, selectors, and expected outcomes. If `playwright-cli` cannot run, stop and notify the human.
 
 #### Create a Functional Test
 

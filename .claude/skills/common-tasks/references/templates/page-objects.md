@@ -36,7 +36,7 @@ Create a new page object for [PAGE NAME] with the following elements:
 
 Requirements:
 - File location: pages/{area}/[name].page.ts  (run `ls pages/` first to find real area name)
-- Use semantic locators (getByRole > getByLabel > getByTestId)
+- Use semantic locators in priority order (getByRole > getByLabel > getByPlaceholder > getByText > getByTestId); never XPath
 - NO JSDoc on locator getters/methods
 - JSDoc with @param and @returns on action methods only
 - Register in fixtures/pom/page-object-fixture.ts
