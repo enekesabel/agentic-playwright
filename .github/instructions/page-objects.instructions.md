@@ -32,7 +32,7 @@ applyTo: 'pages/**/*.ts'
 
 ```typescript
 import { expect, Locator, Page } from '@playwright/test';
-import { Messages } from '../../enums/app/app';
+import { ApiEndpoints, Messages } from '../../enums/app/app';
 
 export class ExamplePage {
     constructor(private readonly page: Page) {}
@@ -71,7 +71,9 @@ export class ExamplePage {
     async submitForm(email: string): Promise<void> {
         await this.emailInput.fill(email);
         await this.submitButton.click();
-        await this.page.waitForResponse((r) => r.url().includes('/api/submit'));
+        await this.page.waitForResponse((r) =>
+            r.url().includes(ApiEndpoints.SUBMIT)
+        ); // illustrative
     }
 }
 ```
@@ -267,12 +269,18 @@ No `mergeTests()` change needed — `pageObjectFixture` is already merged into `
 
 ```typescript
 import { expect, test } from '../../../fixtures/pom/test-options';
+import { INVALID_LOGIN_ATTEMPTS } from '../../../test-data/static/app/invalidCredentials';
 
-test('should show error on bad login', async ({ appPage }) => {
-    await appPage.openHomePage();
-    await appPage.login('bad@example.com', 'wrong');
-    await expect(appPage.errorMessage).toBeVisible();
-});
+test(
+    'should show error on bad login',
+    { tag: '@regression' },
+    async ({ appPage }) => {
+        const [attempt] = INVALID_LOGIN_ATTEMPTS;
+        await appPage.openHomePage();
+        await appPage.login(attempt.email, attempt.password);
+        await expect(appPage.errorMessage).toBeVisible();
+    }
+);
 ```
 
 **Never** `new AppPage(page)` inside a test. If the fixture feels too heavy, fix the fixture, don't bypass it.

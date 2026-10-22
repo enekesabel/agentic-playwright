@@ -79,7 +79,7 @@ test.describe('admin - data management', () => {
         async ({ apiRequest }) => {
             const { status } = await apiRequest({
                 method: 'DELETE',
-                url: '/api/admin/inactive-users',
+                url: ApiEndpoints.ADMIN_INACTIVE_USERS, // illustrative
                 baseUrl: process.env.API_URL,
                 headers: process.env.ACCESS_TOKEN,
             });
@@ -96,6 +96,7 @@ Run with: `npm run test:destructive` (single worker, excluded from `npm test`).
 
 ```typescript
 import { expect, test } from '../../../fixtures/pom/test-options';
+import { generateTodoTitle } from '../../../test-data/factories/app/todo.factory'; // illustrative factory
 
 test.describe('todo - full journey', () => {
     test.beforeEach(async ({ resetStorageState, appPage }) => {
@@ -107,15 +108,21 @@ test.describe('todo - full journey', () => {
         'should add, complete, filter, clear, and verify final state',
         { tag: '@e2e' },
         async ({ todoPage }) => {
+            const titles = [
+                generateTodoTitle(),
+                generateTodoTitle(),
+                generateTodoTitle(),
+            ];
+
             await test.step('GIVEN user creates three todos', async () => {
-                await todoPage.addTodo('Buy milk');
-                await todoPage.addTodo('Walk dog');
-                await todoPage.addTodo('Read book');
+                for (const title of titles) {
+                    await todoPage.addTodo(title);
+                }
                 await expect(todoPage.todoItems).toHaveCount(3);
             });
 
             await test.step('WHEN user completes one and filters to active', async () => {
-                await todoPage.completeTodo('Buy milk');
+                await todoPage.completeTodo(titles[0]);
                 await todoPage.filterByActive();
             });
 

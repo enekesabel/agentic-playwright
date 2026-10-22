@@ -10,18 +10,19 @@ createdResource: async ({ request }, use) => {
     const { body } = await apiRequest({
         request,
         method: 'POST',
-        url: '/api/resources',
+        url: ApiEndpoints.RESOURCES, // illustrative
         baseUrl: process.env.API_URL,
         headers: process.env.ACCESS_TOKEN,
         body: generateResource(),
     });
+    const resource = ResourceSchema.parse(body); // illustrative schema; validate, never `as`-cast
 
-    await use(body);
+    await use(resource);
 
     await apiRequest({
         request,
         method: 'DELETE',
-        url: `/api/resources/${(body as { id: string }).id}`,
+        url: `${ApiEndpoints.RESOURCES}/${resource.id}`,
         baseUrl: process.env.API_URL,
         headers: process.env.ACCESS_TOKEN,
     });

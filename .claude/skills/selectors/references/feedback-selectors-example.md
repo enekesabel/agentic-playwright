@@ -44,8 +44,8 @@ export class ProductsPage {
     async createProduct(name: string): Promise<void> {
         await this.nameInput.fill(name);
         await this.saveButton.click();
-        await this.page.waitForResponse((r) =>
-            r.url().includes('/api/products')
+        await this.page.waitForResponse(
+            (r) => r.url().includes(ApiEndpoints.PRODUCTS) // illustrative
         );
     }
 }

@@ -99,7 +99,7 @@ page.getByLabel('Password');
 page.getByPlaceholder('Search...');
 
 // 4. getByText -- static content
-page.getByText('Login successful');
+page.getByText(Messages.LOGIN_SUCCESS); // illustrative member
 page.getByText(Messages.LOGIN_ERROR); // prefer enums for repeated strings
 
 // 5. getByTestId -- last resort
@@ -138,14 +138,14 @@ Every page object that covers a form or CRUD operation **must** include selector
 
 ### What to Capture
 
-| Feedback Type        | When It Appears                         | Selector Strategy                                                      |
-| -------------------- | --------------------------------------- | ---------------------------------------------------------------------- |
-| Success message      | After successful create/update/delete   | `getByText(Messages.CREATED_SUCCESS)` or `getByRole('alert')`          |
-| Error message        | After failed submission or server error | `getByText(Messages.SAVE_FAILED)` or `getByRole('alert')`              |
-| Field validation     | On blur or on submit with invalid input | `getByText('Email is required')` scoped to the form/field container    |
-| Toast / notification | Temporary banner after any operation    | `getByRole('status')` or `getByText()` on the toast content            |
-| Loading state        | During async operations                 | `getByRole('progressbar')` or `getByText('Loading...')`                |
-| Empty state          | When a list/table has no data           | `getByText('No items found')` or `getByRole('heading')` in empty state |
+| Feedback Type        | When It Appears                         | Selector Strategy                                                          |
+| -------------------- | --------------------------------------- | -------------------------------------------------------------------------- |
+| Success message      | After successful create/update/delete   | `getByText(Messages.CREATED_SUCCESS)` or `getByRole('alert')`              |
+| Error message        | After failed submission or server error | `getByText(Messages.SAVE_FAILED)` or `getByRole('alert')`                  |
+| Field validation     | On blur or on submit with invalid input | `getByText(Messages.EMAIL_REQUIRED)` scoped to the form/field container    |
+| Toast / notification | Temporary banner after any operation    | `getByRole('status')` or `getByText()` on the toast content                |
+| Loading state        | During async operations                 | `getByRole('progressbar')` or `getByText(Messages.LOADING)`                |
+| Empty state          | When a list/table has no data           | `getByText(Messages.EMPTY_STATE)` or `getByRole('heading')` in empty state |
 
 > The `Messages.*` values shown above are **illustrative placeholders**. Use the real enum members from your scaffold's `enums/{area}/*.ts` (e.g. `Messages.LOGIN_SUCCESS`, `Messages.LOGIN_ERROR`, `Messages.REQUIRED_FIELD`). Capture the exact rendered text with `playwright-cli` first and encode it via the `enums` skill.
 

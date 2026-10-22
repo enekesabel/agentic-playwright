@@ -15,7 +15,7 @@ test(
         const { status: createStatus, body: createBody } =
             await apiRequest<UserResponse>({
                 method: 'POST',
-                url: '/api/users',
+                url: ApiEndpoints.USERS, // illustrative
                 baseUrl: process.env.API_URL,
                 headers: process.env.ACCESS_TOKEN,
                 body: userData,
@@ -27,7 +27,7 @@ test(
         const { status: getStatus, body: getBody } =
             await apiRequest<UserResponse>({
                 method: 'GET',
-                url: `/api/users/${userId}`,
+                url: `${ApiEndpoints.USERS}/${userId}`,
                 baseUrl: process.env.API_URL,
                 headers: process.env.ACCESS_TOKEN,
             });

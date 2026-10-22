@@ -87,12 +87,15 @@ import {
     UnauthorizedResponse,
     UnauthorizedResponseSchema,
 } from '../../../fixtures/api/schemas/util/errorResponseSchema';
+import { ApiEndpoints } from '../../../enums/app/app';
+import { INVALID_LOGIN_ATTEMPTS } from '../../../test-data/static/app/invalidCredentials';
 
+const [attempt] = INVALID_LOGIN_ATTEMPTS;
 const { status, body } = await apiRequest<UnauthorizedResponse>({
     method: 'POST',
-    url: '/api/login',
+    url: ApiEndpoints.LOGIN,
     baseUrl: process.env.API_URL,
-    body: { email: 'bad@email.com', password: 'wrong' },
+    body: { email: attempt.email, password: attempt.password },
 });
 
 expect(status).toBe(401);
@@ -111,11 +114,12 @@ import {
     UserResponse,
     UserResponseSchema,
 } from '../../../fixtures/api/schemas/app/userSchema';
+import { ApiEndpoints } from '../../../enums/app/app';
 
 test('should return user data', { tag: '@api' }, async ({ apiRequest }) => {
     const { status, body } = await apiRequest<UserResponse>({
         method: 'GET',
-        url: '/api/users/me',
+        url: ApiEndpoints.CURRENT_USER,
         baseUrl: process.env.API_URL,
         headers: process.env.ACCESS_TOKEN,
     });
@@ -195,7 +199,7 @@ test(
         await test.step('Create user via POST /api/users', async () => {
             const { status, body } = await apiRequest<UserResponse>({
                 method: 'POST',
-                url: '/api/users',
+                url: ApiEndpoints.USERS, // illustrative
                 baseUrl: process.env.API_URL,
                 headers: process.env.ACCESS_TOKEN,
                 body: userData,
@@ -209,7 +213,7 @@ test(
         await test.step('Retrieve user via GET /api/users/:id', async () => {
             const { status, body } = await apiRequest<UserResponse>({
                 method: 'GET',
-                url: `/api/users/${userId}`,
+                url: `${ApiEndpoints.USERS}/${userId}`,
                 baseUrl: process.env.API_URL,
                 headers: process.env.ACCESS_TOKEN,
             });
@@ -223,7 +227,7 @@ test(
         await test.step('Delete user via DELETE /api/users/:id', async () => {
             const { status, body } = await apiRequest<null>({
                 method: 'DELETE',
-                url: `/api/users/${userId}`,
+                url: `${ApiEndpoints.USERS}/${userId}`,
                 baseUrl: process.env.API_URL,
                 headers: process.env.ACCESS_TOKEN,
             });
