@@ -10,15 +10,14 @@ When a test fails, you investigate first and fix second. This skill is the canon
 
 ## Critical
 
-- **ALWAYS read the failure message first.** Playwright errors identify the failing locator, assertion, timeout type, and source line. Skim the message before changing any code or guessing.
-- **NEVER suppress a failure.** Don't add `test.skip` without `// FIXME: <ticket-url>`, don't loosen an assertion, don't bump timeouts to make a flake pass, don't `try/catch` an `expect` to swallow it. If the API genuinely misbehaves, follow the `api-testing` Phase 7 behaviour-mismatch protocol.
-- **NEVER add `page.waitForTimeout(...)` to "fix" a timing issue.** Hard waits hide the real cause. Use a web-first assertion (`await expect(locator).toBeVisible()`) or `page.waitForResponse(...)` instead.
-- **NEVER push a fix you can't reproduce locally.** Pull the CI trace and replay it before believing the issue is resolved.
+- <a id="rule-read-failure-first"></a>**ALWAYS read the failure message first.** Playwright errors identify the failing locator, assertion, timeout type, and source line. Skim the message before changing any code or guessing.
+- <a id="rule-never-suppress-failures"></a>**NEVER suppress a failure.** Don't add `test.skip` without `// FIXME: <ticket-url>`, don't loosen an assertion, don't bump timeouts to make a flake pass, don't `try/catch` an `expect` to swallow it. If the API genuinely misbehaves, follow the `api-testing` Phase 7 behaviour-mismatch protocol. See [No Silent Coverage Drops](../../rules/rules.mdc#rule-no-silent-coverage-drops).
+- <a id="rule-reproduce-before-push"></a>**NEVER push a fix you can't reproduce locally.** Pull the CI trace and replay it before believing the issue is resolved.
 - **`trace` is opt-in for retries.** This scaffold's `playwright.config.ts` sets `trace: 'on-first-retry'`. Locally `retries: 0`, so traces are **NOT** captured by default. To get a trace locally, either run with `--trace on` (or `--trace retain-on-failure`) or use UI Mode (`npm run test:ui`).
 - **Prefer UI Mode (`npm run test:ui`) for interactive debugging.** It's the fastest feedback loop — every test step is replayable, locators are live-pickable, the DOM at each step is inspectable. Reach for it before the Inspector or `console.log`.
-- **Re-run multiple times before declaring a flake fixed.** A passing run after one fix is not enough; aim for at least 5 consecutive green runs of the affected test before closing the issue.
-- **Keep `forbidOnly: !!process.env.CI` in mind.** `test.only(...)` is your friend locally for narrowing — but **do not commit it**. CI will fail the build.
-- **Re-run lint and the full affected file after each fix** — `npx eslint .` and `npx playwright test <file>` before moving on.
+- <a id="rule-flaky-rerun-5x"></a>**Re-run multiple times before declaring a flake fixed.** A passing run after one fix is not enough; aim for at least 5 consecutive green runs of the affected test before closing the issue.
+- <a id="rule-no-commit-test-only"></a>**Keep `forbidOnly: !!process.env.CI` in mind.** `test.only(...)` is your friend locally for narrowing — but **do not commit it**. CI will fail the build.
+- Constitution rules that apply here: [No Hard Waits](../../rules/rules.mdc#rule-no-hard-waits) (for a timing issue use a web-first assertion or `page.waitForResponse(...)` instead), [Assertions](../../rules/rules.mdc#rule-assertions), [Explore Before Generate](../../rules/rules.mdc#rule-explore-before-generate), [Linting](../../rules/rules.mdc#rule-linting), [Test Verification](../../rules/rules.mdc#rule-test-verification) (re-run lint and the affected file after each fix).
 
 ## Capture Defaults (this scaffold)
 
@@ -87,7 +86,7 @@ Map the message to the right category — each routes to a different tool and so
 | Element not found                     | `Error: locator.X: ... element is not attached to the DOM`            | Page replaced before action, frame swap, navigation race                                                          | Trace Viewer; check if action fired before/after navigation                                                               |
 | `ReferenceError` / `TypeError`        | `appPage is undefined`, `cannot read property X of undefined`         | Fixture not registered, bad import (from `@playwright/test` instead of `test-options.ts`), missing factory output | `fixtures` / `test-standards` Critical                                                                                    |
 | Test passes alone, fails in suite     | Green with `--grep`, red without                                      | Test independence violated (shared state, missing `resetStorageState`, parallel collision)                        | `test-standards` Phase 9; promote shared mutators to `@destructive` with cleanup                                          |
-| `forbidOnly` failed the build         | `Error: focused tests are not allowed in CI`                          | A `test.only(...)` was committed                                                                                  | Remove `test.only(...)` from the spec                                                                                     |
+| `forbidOnly` failed the build         | `Error: focused tests are not allowed in CI`                          | A `test.only(...)` was committed                                                                                  | Remove `test.only(...)` from the spec ([No Commit Test Only](#rule-no-commit-test-only))                                  |
 
 ### Phase 3: Reproduce locally
 
@@ -100,7 +99,7 @@ npx playwright test tests/app/functional/login.spec.ts --workers=1 --retries=0
 # Option B -- narrow further with --grep (matches tag or test title)
 npx playwright test --grep "should show error for invalid login" --workers=1 --retries=0
 
-# Option C -- last resort, narrow with `test.only(...)` in the spec file (DO NOT COMMIT)
+# Option C -- last resort, narrow with `test.only(...)` in the spec file (never commit it)
 test.only('should show error for invalid login', { tag: '@regression' }, async (...) => { ... });
 ```
 
@@ -181,18 +180,18 @@ Best when you need to **watch** the browser do something specific you can't see 
 
 Map the diagnosis to a fix in the right place. **Do not patch in the test if the bug lives in a page object or schema.**
 
-| Diagnosis                                            | Fix lives in                                                                                                                  |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Locator returned wrong/zero/many elements            | The page object's getter (see `selectors` + `page-objects`)                                                                   |
-| Action raced ahead of navigation                     | The page object's action method — add `page.waitForResponse(...)` for the API or a web-first assertion for the post-nav state |
-| `Messages.X` value drifted from the live UI          | `enums/{area}/*.ts` via the `refactor-values` workflow                                                                        |
-| Schema disagreed with documented contract            | The test (`test.skip` + `// FIXME: <ticket-url>`) — `api-testing` Phase 7. **NEVER** loosen the schema                        |
-| Schema disagreed with the real response (no docs)    | The schema (`fixtures/api/schemas/...`) — update to match                                                                     |
-| Token missing (`process.env.ACCESS_TOKEN` undefined) | The auth-bootstrap helper / `auth.setup.ts` — see the `helpers` skill                                                         |
-| Fixture missing (`appPage` is undefined)             | `fixtures/pom/page-object-fixture.ts` — see the `fixtures` skill                                                              |
-| Tag combined / wrong                                 | The test header — `test-standards` single-tag rule                                                                            |
-| Hardcoded string in `getByText(...)`                 | Replace with `Messages.*` enum (`enums` skill)                                                                                |
-| Test depends on another test's side-effect           | Move the setup into `beforeEach` / a fixture; use a factory for unique data per test                                          |
+| Diagnosis                                            | Fix lives in                                                                                                                                                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Locator returned wrong/zero/many elements            | The page object's getter (see `selectors` + `page-objects`)                                                                                                                    |
+| Action raced ahead of navigation                     | The page object's action method — add `page.waitForResponse(...)` for the API or a web-first assertion for the post-nav state                                                  |
+| `Messages.X` value drifted from the live UI          | `enums/{area}/*.ts` via the `refactor-values` workflow                                                                                                                         |
+| Schema disagreed with documented contract            | The test (`test.skip` + `// FIXME: <ticket-url>`) — `api-testing` Phase 7. [Explore Before Generate](../../rules/rules.mdc#rule-explore-before-generate): never loosen the schema |
+| Schema disagreed with the real response (no docs)    | The schema (`fixtures/api/schemas/...`) — update to match                                                                                                                      |
+| Token missing (`process.env.ACCESS_TOKEN` undefined) | The auth-bootstrap helper / `auth.setup.ts` — see the `helpers` skill                                                                                                          |
+| Fixture missing (`appPage` is undefined)             | `fixtures/pom/page-object-fixture.ts` — see the `fixtures` skill                                                                                                               |
+| Tag combined / wrong                                 | The test header — [No Multiple Tags](../../rules/rules.mdc#rule-no-multiple-tags)                                                                                                 |
+| Hardcoded string in `getByText(...)`                 | Replace with `Messages.*` enum ([Enums for Strings](../../rules/rules.mdc#rule-enums-for-strings))                                                                                |
+| Test depends on another test's side-effect           | Move the setup into `beforeEach` / a fixture; use a factory for unique data per test                                                                                           |
 
 ### Phase 6: Re-run and confirm stability
 
@@ -202,7 +201,7 @@ A green run after one fix is not enough.
 # Re-run the affected file with retries off
 npx playwright test tests/app/functional/login.spec.ts --workers=1 --retries=0
 
-# Re-run 5 consecutive times for confidence on flakiness fixes
+# Re-run 5 consecutive times for confidence on flakiness fixes (Flaky Rerun 5x in Critical)
 for i in 1 2 3 4 5; do npx playwright test tests/app/functional/login.spec.ts --workers=1 --retries=0 || break; done
 
 # Then re-run the full affected suite
@@ -213,8 +212,8 @@ Confirm:
 
 - The originally failing test passes.
 - No other test in the file was broken by the fix.
-- Lint is clean (`npx eslint .`).
-- No `test.only(...)` left behind (CI's `forbidOnly` will catch it, but you should catch it first).
+- Lint is clean (`npx eslint .`), per [Linting](../../rules/rules.mdc#rule-linting).
+- No `test.only(...)` left behind, per [No Commit Test Only](#rule-no-commit-test-only).
 
 ### Phase 7: Investigate a CI-only failure (red CI, green local)
 
@@ -260,5 +259,5 @@ When the test passes locally but fails in CI, you need CI's artifacts to reprodu
 - **`config`** skill — env file selection (`ENVIRONMENT`), `process.env.*` correctness, where `APP_URL` / `API_URL` are sourced.
 - **`common-tasks`** skill — Phase 7 (Run tests) routes failures here; verification checklist.
 - **`ai-native-workflow`** skill — the meta workflow: how to ask, how to escalate, how to commit a fix, and the audit-then-edit pattern that keeps debugging sessions consistent across agents.
-- **`references/examples.md`** — four worked debug scenarios (action timeout, ZodError contract drift, suite-only failure, CI-only failure).
-- **`references/troubleshooting.md`** — common debugging pitfalls (missing trace, stale report, committed `test.only`, UI Mode resource use, timeout bump, suppressed `expect`, flake diagnosis, destructive leak, cross-browser).
+- **[`references/examples.md`](references/examples.md)** — four worked debug scenarios (action timeout, ZodError contract drift, suite-only failure, CI-only failure).
+- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common debugging pitfalls (missing trace, stale report, committed `test.only`, UI Mode resource use, timeout bump, suppressed `expect`, flake diagnosis, destructive leak, cross-browser).

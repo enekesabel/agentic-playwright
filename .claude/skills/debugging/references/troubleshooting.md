@@ -13,7 +13,7 @@
 ## `test.only(...)` works locally but the CI build is failing with `forbidOnly`
 
 **Cause:** You committed `test.only(...)`. `playwright.config.ts` has `forbidOnly: !!process.env.CI`.
-**Fix:** Remove `test.only(...)` and re-push. Use `--grep` to narrow in CI workflows.
+**Fix:** Remove `test.only(...)` and re-push ([No Commit Test Only](../SKILL.md#rule-no-commit-test-only)). Use `--grep` to narrow in CI workflows.
 
 ## UI Mode is slow / consumes lots of memory
 
@@ -21,12 +21,12 @@
 
 ## I bumped a timeout to make the assertion pass
 
-**Cause:** You masked a real bug.
+**Cause:** You masked a real bug, which [Never Suppress Failures](../SKILL.md#rule-never-suppress-failures) forbids.
 **Fix:** Revert the timeout. Re-run with UI Mode or Trace and find what the page is actually waiting on. The right fix is almost always: a missing `waitForResponse` in the page-object action, a wrong locator, or a missing precondition.
 
 ## I added `try/catch` around `expect(...)` so the test "passes"
 
-**Cause:** Suppressing an assertion is a coverage drop.
+**Cause:** Suppressing an assertion is a coverage drop ([Never Suppress Failures](../SKILL.md#rule-never-suppress-failures)).
 **Fix:** Remove the catch. If the API is the bug, follow `api-testing` Phase 7. If the test logic is wrong, fix the test.
 
 ## I think the failure is intermittent (flaky)
@@ -37,7 +37,7 @@
 ## `npm test` reports a destructive test ran and broke things
 
 **Cause:** A test was promoted to `@destructive` but the cleanup `afterEach` is missing or wrong.
-**Fix:** `test-standards` Phase 7 — every `@destructive` test must have idempotent cleanup. Until cleanup is in, the test stays out of the suite.
+**Fix:** `test-standards` Phase 7 — [State Cleanup](../../../../CLAUDE.md#rule-state-cleanup) applies: every `@destructive` test must have idempotent cleanup. Until cleanup is in, the test stays out of the suite.
 
 ## My fix works on chromium but I want to know if it'll break other browsers
 
