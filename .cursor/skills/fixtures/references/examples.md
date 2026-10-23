@@ -10,7 +10,7 @@ Actions:
 2. **Phase 2** — Confirm the `SettingsPage` class was built after `playwright-cli` exploration and includes feedback/validation locators.
 3. **Phase 4** — Add `settingsPage: SettingsPage;` to `FrameworkFixtures`, add the fixture body `async ({ page }, use) => { await use(new SettingsPage(page)); }`.
 4. No `mergeTests()` change (page objects already merged).
-5. Consume in tests via `async ({ settingsPage }) => { ... }` — never `new SettingsPage(page)` inside a test.
+5. Consume in tests via `async ({ settingsPage }) => { ... }` — [No Manual Instantiation](../../../rules/rules.mdc#rule-no-manual-instantiation) forbids `new SettingsPage(page)` inside a test.
 
 ## Example 2: Do NOT create a fixture for a one-off API call
 
@@ -19,7 +19,7 @@ User says: _"Before this test I need to POST to `/api/flags` to enable a feature
 Actions:
 
 1. **Phase 1** — One-off setup, used by one test → **no fixture**. Call `apiRequest` directly inside `beforeEach` or inline in the test.
-2. Promote to a helper fixture **only if** the same POST-to-`/api/flags` setup shows up in 3+ spec files with guaranteed teardown (see `api-testing` Phase 8 rule of thumb).
+2. Promote to a helper fixture only per [Helper Fixture Promotion](../../api-testing/SKILL.md#rule-helper-fixture-promotion-3plus) (the same POST-to-`/api/flags` setup repeated across spec files with guaranteed teardown).
 
 Result: the test stays self-contained, no fixture creep, no cross-test coupling.
 

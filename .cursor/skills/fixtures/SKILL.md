@@ -8,15 +8,14 @@ author: Ivan Davidov
 
 ## Critical
 
-- **ALWAYS** use fixtures for dependency injection. **NEVER** instantiate a page object manually in a test file (`new AppPage(page)` is forbidden).
-- **ALWAYS** import `test` and `expect` from `fixtures/pom/test-options.ts`. **NEVER** import them from `@playwright/test` in spec files.
-- **Page object fixtures** live in `fixtures/pom/page-object-fixture.ts`. Do not create per-page fixture files.
-- **Lifecycle (setup/teardown) fixtures** live in `fixtures/helper/helper-fixture.ts`. They use the Playwright `use()` callback pattern.
-- **Plain utility functions** (no fixture lifecycle) live in `helpers/` — not in `fixtures/`. See the `helpers` skill.
-- **Every new fixture** must be typed: extend `FrameworkFixtures` (for page objects) or `HelperFixtures` (for lifecycle) — do not add untyped fixtures.
-- **Teardown uses `use()`.** Setup runs before `use()`, data is yielded via `use(data)`, teardown runs after `use()` — even if the test fails.
-- **New fixture categories** (not page objects, not lifecycle helpers) must be declared in their own `fixtures/{category}/{name}-fixture.ts` file and merged into `test-options.ts` via `mergeTests()`.
-- **Do not promote one-off API calls to helper fixtures.** Helper fixtures are reserved for setup/teardown reused across 3+ spec files — see the `api-testing` skill (Phase 8).
+- <a id="rule-pom-fixtures-location"></a>**Page object fixtures** live in `fixtures/pom/page-object-fixture.ts`. Do not create per-page fixture files. Registering a page object: [Register Page Object Fixture](../page-objects/SKILL.md#rule-register-page-object-fixture).
+- <a id="rule-helper-fixtures-location"></a>**Lifecycle (setup/teardown) fixtures** live in `fixtures/helper/helper-fixture.ts`. They use the Playwright `use()` callback pattern.
+- <a id="rule-plain-utils-in-helpers"></a>**Plain utility functions** (no fixture lifecycle) live in `helpers/` — not in `fixtures/`. See the `helpers` skill.
+- <a id="rule-fixtures-must-be-typed"></a>**Every new fixture** must be typed: extend `FrameworkFixtures` (for page objects) or `HelperFixtures` (for lifecycle) — do not add untyped fixtures.
+- <a id="rule-fixture-teardown-after-use"></a>**Teardown uses `use()`.** Setup runs before `use()`, data is yielded via `use(data)`, teardown runs after `use()` — even if the test fails.
+- <a id="rule-new-fixture-category-file"></a>**New fixture categories** (not page objects, not lifecycle helpers) must be declared in their own `fixtures/{category}/{name}-fixture.ts` file and merged into `test-options.ts` via `mergeTests()`.
+- **Promoting setup/teardown to a helper fixture:** see [Helper Fixture Promotion](../api-testing/SKILL.md#rule-helper-fixture-promotion-3plus).
+- Constitution rules that apply here: [Dependency Injection](../../rules/rules.mdc#rule-dependency-injection), [Imports](../../rules/rules.mdc#rule-imports), [No Manual Instantiation](../../rules/rules.mdc#rule-no-manual-instantiation).
 
 ## Fixture Architecture
 
@@ -46,14 +45,14 @@ export { test, expect, request };
 
 Match the need to the correct home. This table exists to stop fixtures from creeping into places they don't belong.
 
-| Need                                                                                    | Home                                                                                               |
-| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| New page object wired into tests via DI                                                 | Page object fixture in `fixtures/pom/page-object-fixture.ts` (extend, don't create new file)       |
-| One-off API call in a single test or describe                                           | **No fixture.** Call `apiRequest` directly (see the `api-testing` skill)                           |
-| Multi-step API setup/teardown reused across **3+** spec files with guaranteed lifecycle | Helper fixture in `fixtures/helper/helper-fixture.ts` (see the `api-testing` skill, Phase 8)       |
-| Reusable pure function (no fixture lifecycle) called from tests/fixtures                | **Plain function in `helpers/`** — not `fixtures/` (see the `helpers` skill)                       |
-| A genuinely new fixture category (not a page object, not API setup)                     | New file `fixtures/{category}/{name}-fixture.ts`, merged into `test-options.ts` via `mergeTests()` |
-| Tweak to global Playwright config (timeouts, workers, retries, projects)                | `playwright.config.ts` — not a fixture (see the `config` skill)                                    |
+| Need                                                                     | Home                                                                                               |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| New page object wired into tests via DI                                  | Page object fixture in `fixtures/pom/page-object-fixture.ts` (extend, don't create new file)       |
+| One-off API call in a single test or describe                            | **No fixture.** Call `apiRequest` directly (see the `api-testing` skill)                           |
+| Multi-step API setup/teardown that meets the promotion threshold         | Helper fixture in `fixtures/helper/helper-fixture.ts` (see the `api-testing` skill, Phase 8)       |
+| Reusable pure function (no fixture lifecycle) called from tests/fixtures | **Plain function in `helpers/`** — not `fixtures/` (see the `helpers` skill)                       |
+| A genuinely new fixture category (not a page object, not API setup)      | New file `fixtures/{category}/{name}-fixture.ts`, merged into `test-options.ts` via `mergeTests()` |
+| Tweak to global Playwright config (timeouts, workers, retries, projects) | `playwright.config.ts` — not a fixture (see the `config` skill)                                    |
 
 If the need fits none of these rows, stop and ask. Do not invent a new location.
 
@@ -61,8 +60,8 @@ If the need fits none of these rows, stop and ask. Do not invent a new location.
 
 Before registering a page object fixture, confirm the page object itself was built correctly:
 
-- The page object was created **after exploring the live application** with `playwright-cli` (see the `selectors` skill → "Exploration-First Workflow").
-- The page object includes **feedback/validation message locators** (success, error, field validation) — not just form inputs and buttons (see the `selectors` skill → "Feedback & Validation Message Selectors").
+- The page object was created **after exploring the live application** with `playwright-cli` ([Explore Before Generate](../../rules/rules.mdc#rule-explore-before-generate); see the `selectors` skill → "Exploration-First Workflow").
+- The page object includes **feedback/validation message locators** (success, error, field validation) — not just form inputs and buttons ([No Feedback-Less POM](../../rules/rules.mdc#rule-no-feedback-less-pom); see the `selectors` skill → "Feedback & Validation Message Selectors").
 
 Registering a page object that was generated from guesses rather than observed UI defeats the purpose of the DI pattern. Stop and run the exploration first.
 
@@ -164,16 +163,16 @@ Order matters: code after `await use(...)` is the teardown. Do not teardown befo
 
 ### `apiRequest` fixture vs. helper fixtures
 
-Use `apiRequest` directly for all API calls in tests. Create helper fixtures only for critical, recurring setup/teardown reused across many test files. See the `api-testing` skill (Phase 8) for the full decision guide, lifecycle pattern, and rule of thumb.
+Use `apiRequest` directly for all API calls in tests; promotion to a helper fixture follows [Helper Fixture Promotion](../api-testing/SKILL.md#rule-helper-fixture-promotion-3plus). See the `api-testing` skill (Phase 8) for the full decision guide and lifecycle pattern.
 
 ## See Also
 
-- **`api-testing`** skill — Phase 8 owns the deep decision for helper fixtures (3+ files rule of thumb, lifecycle, apiRequest-vs-helper table).
+- **`api-testing`** skill — Phase 8 owns the deep decision for helper fixtures (promotion threshold, lifecycle, apiRequest-vs-helper table).
 - **`helpers`** skill — plain utility functions that are **not** Playwright fixtures (no `use()` lifecycle).
 - **`page-objects`** skill — what a page object must look like before it's wrapped in a fixture.
 - **`selectors`** skill — exploration-first workflow and feedback-locator requirements for page objects.
 - **`playwright-cli`** skill — how to run the live-app exploration before building the page object.
 - **`common-tasks`** skill — prompt templates for "Add a New Page Object Fixture", "Add a Helper Fixture", "Add a New Fixture Category".
 - **`debugging`** skill — `appPage is undefined` / `cannot read property of undefined` / fixture-lifecycle / merge-not-applied failures live here.
-- **`references/examples.md`** — three worked walkthroughs (new page-object fixture, when NOT to create a fixture for a one-off call, brand-new fixture category).
-- **`references/troubleshooting.md`** — common fixture pitfalls (wrong `test` import, fixture creep, teardown not running, missing `mergeTests`, helper-vs-fixture decision, manual instantiation temptation).
+- **[`references/examples.md`](references/examples.md)** — three worked walkthroughs (new page-object fixture, when NOT to create a fixture for a one-off call, brand-new fixture category).
+- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common fixture pitfalls (wrong `test` import, fixture creep, teardown not running, missing `mergeTests`, helper-vs-fixture decision, manual instantiation temptation).
