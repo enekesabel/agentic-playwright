@@ -6,14 +6,12 @@ applyTo: '**/*.ts'
 
 ## Critical
 
-- **NEVER** use `any`. Use explicit types, Zod-inferred types (`zOutput<typeof ...>`), or `unknown` at boundaries.
-- **NEVER** use `as T` or `as unknown as T` to silence the type-checker. If you genuinely need to cross a type boundary, validate first (`Schema.parse(...)`) and let Zod produce the typed result.
-- **ALWAYS** define API schemas with `z.strictObject()`. `z.object()` silently strips unknown keys and hides contract drift.
-- **ALWAYS** prefer Zod 4 top-level validators (`z.uuid()`, `z.email()`, `z.url()`, `z.int()`, `z.enum(E)`) over the deprecated chained forms (`z.string().uuid()`, `z.string().email()`, etc.).
-- **ALWAYS** assert API responses with the exact pattern `expect(SchemaName.parse(body)).toBeTruthy();`. `Schema.parse(body)` on its own is not enough.
-- **ALWAYS** specify explicit return types on exported and public functions (`Promise<void>`, `Promise<UserResponse>`, `Locator`, `string`, etc.).
-- **Access `process.env.*` with `!` (guaranteed at runtime) or `??` (with a safe fallback).** Never let `string | undefined` leak into downstream code.
-- **Build response schemas directly from the documented contract.** Define each field — including the response envelope (`success / message / data / errors` or whatever the API uses) — explicitly per endpoint, exactly as the OpenAPI / Swagger spec describes. Do not invent factories or helpers that hide the envelope. If an envelope is genuinely repeated across many endpoints in one domain, extract a per-domain shared `z.strictObject` definition (e.g. `fixtures/api/schemas/{area}/_envelope.ts`) and compose with `.extend(...)` — but only after the repetition is real and observed.
+- <a id="rule-no-as-cast"></a>**NEVER** use `as T` or `as unknown as T` to silence the type-checker. If you genuinely need to cross a type boundary, validate first (`Schema.parse(...)`) and let Zod produce the typed result.
+- <a id="rule-zod4-top-level-validators"></a>**ALWAYS** prefer Zod 4 top-level validators (`z.uuid()`, `z.email()`, `z.url()`, `z.int()`, `z.enum(E)`) over the deprecated chained forms (`z.string().uuid()`, `z.string().email()`, etc.).
+- <a id="rule-explicit-return-types"></a>**ALWAYS** specify explicit return types on exported and public functions (`Promise<void>`, `Promise<UserResponse>`, `Locator`, `string`, etc.).
+- <a id="rule-process-env-typing"></a>**Access `process.env.*` with `!` (guaranteed at runtime) or `??` (with a safe fallback).** Never let `string | undefined` leak into downstream code.
+- <a id="rule-no-envelope-factory"></a>**Build response schemas directly from the documented contract.** Define each field — including the response envelope (`success / message / data / errors` or whatever the API uses) — explicitly per endpoint, exactly as the OpenAPI / Swagger spec describes. Do not invent factories or helpers that hide the envelope. If an envelope is genuinely repeated across many endpoints in one domain, extract a per-domain shared `z.strictObject` definition (e.g. `fixtures/api/schemas/{area}/_envelope.ts`) and compose with `.extend(...)` — but only after the repetition is real and observed.
+- Constitution rules that apply here: [No `any`](../copilot-instructions.md#rule-no-any), [Strict Schemas](../copilot-instructions.md#rule-strict-schemas), [No Loose Schemas](../copilot-instructions.md#rule-no-loose-schemas), [Response Validation](../copilot-instructions.md#rule-response-validation).
 
 ## Schema Location
 
@@ -52,11 +50,11 @@ Rules:
 
 - `unknown` is the right type at a **boundary** (network, file read, user input) — convert to a concrete type via `Schema.parse(...)`.
 - Inside a function body, every variable must have a concrete type (explicit or inferred from a typed source).
-- `as T` is a red flag. If you see one, ask: _"Can I parse with Zod here instead?"_ The answer is almost always yes.
+- `as T` is a red flag ([No `as` Cast](#rule-no-as-cast)). If you see one, ask: _"Can I parse with Zod here instead?"_ The answer is almost always yes.
 
 ### Phase 2: Define the Zod schema
 
-Use `z.strictObject()` and Zod 4 top-level validators. Build the response schema — including the envelope — directly from the OpenAPI / Swagger documentation. Each schema is a self-contained 1:1 mirror of the documented contract.
+Use `z.strictObject()` ([Strict Schemas](../copilot-instructions.md#rule-strict-schemas)) and Zod 4 top-level validators ([Zod 4 Top-Level Validators](#rule-zod4-top-level-validators)). Build the response schema — including the envelope — directly from the OpenAPI / Swagger documentation. Each schema is a self-contained 1:1 mirror of the documented contract.
 
 ```typescript
 import { z } from 'zod/v4';
@@ -85,7 +83,7 @@ export const UserResponseSchema = z.strictObject({
 ```
 
 ```typescript
-// FORBIDDEN -- z.object() silently strips unknown keys
+// FORBIDDEN (No Loose Schemas) -- z.object() silently strips unknown keys
 export const Schema = z.object({
     id: z.uuid(),
 });
@@ -123,7 +121,7 @@ If there are no `.default(...)` or `.transform(...)` calls, `zInput` and `zOutpu
 
 ### Phase 4: Validate at runtime with the mandatory assertion
 
-API response validation uses the exact assertion pattern enforced across the scaffold:
+API response validation follows [Response Validation](../copilot-instructions.md#rule-response-validation):
 
 ```typescript
 import {
@@ -143,14 +141,14 @@ expect(UserResponseSchema.parse(body)).toBeTruthy();
 ```
 
 - The generic `<UserResponse>` gives compile-time safety on `body`.
-- `expect(SchemaName.parse(body)).toBeTruthy();` is the mandatory runtime check — not `schema.parse(body)` alone, not a bare `SchemaName.parse(body)` with no assertion.
+- `expect(SchemaName.parse(body)).toBeTruthy();` is the runtime check.
 - If the response is legitimately `null` (e.g., a 204 `DELETE`), assert `expect(body).toBeNull()` instead — do not call `parse()` on `null`.
 
-This pattern is enforced in the `api-testing` Critical rule and repeated by `helpers` and `test-standards`. Any helper, fixture, or spec that calls `apiRequest` follows it.
+Any helper, fixture, or spec that calls `apiRequest` follows it.
 
 ### Phase 5: Annotate function signatures
 
-Always specify return types on public / exported functions. TypeScript can often infer them, but an explicit annotation documents the contract and surfaces breaking changes earlier.
+Specify return types on public / exported functions ([Explicit Return Types](#rule-explicit-return-types)). TypeScript can often infer them, but an explicit annotation documents the contract and surfaces breaking changes earlier.
 
 ```typescript
 // CORRECT
@@ -180,7 +178,7 @@ const environment = process.env.ENVIRONMENT ?? 'dev';
 const timeout = Number(process.env.TIMEOUT_MS ?? 10000);
 ```
 
-Never let `string | undefined` spread into downstream code unchecked:
+The point of [Process Env Typing](#rule-process-env-typing) is that `string | undefined` never spreads into downstream code unchecked:
 
 ```typescript
 // FORBIDDEN -- downstream consumers will get `string | undefined`
@@ -192,7 +190,7 @@ export const baseUrl = process.env.API_URL!;
 export const baseUrl = process.env.API_URL ?? 'http://localhost:3000';
 ```
 
-**NEVER** hardcode secrets, passwords, or URLs. See the `config` skill for where env variables are declared.
+Secrets, passwords, and URLs are never hardcoded ([No Secrets](../copilot-instructions.md#rule-no-secrets), [Sources of Truth](../copilot-instructions.md#rule-sources-of-truth)). See the `config` skill for where env variables are declared.
 
 ```typescript
 // FORBIDDEN
@@ -233,7 +231,7 @@ The chained forms still work but prefer the top-level forms:
 - `z.string().uuid()` → `z.uuid()`
 - `z.string().url()` → `z.url()`
 - `z.nativeEnum(E)` → `z.enum(E)`
-- `z.object()` → `z.strictObject()` (**mandatory** for this project — rejects unknown keys)
+- `z.object()` → `z.strictObject()` (rejects unknown keys; required by [No Loose Schemas](../copilot-instructions.md#rule-no-loose-schemas))
 - `z.object().merge()` → **removed**; use `.extend()` on `z.strictObject()` or spread `{ ...A.shape, ...B.shape }`
 - `z.object().passthrough()` → `z.looseObject()` (only when explicitly needed)
 - `z.infer<typeof Schema>` → `zOutput<typeof Schema>` (use `zInput<>` for pre-transform types)
@@ -251,11 +249,11 @@ Do not disable or weaken strict mode for a single file. If a type feels impossib
 
 ## See Also
 
-- **`api-testing`** skill — how schemas are consumed in tests, the full coverage matrix, `expect(Schema.parse(body)).toBeTruthy()` enforcement, Phase 7 behaviour-mismatch protocol.
+- **`api-testing`** skill — how schemas are consumed in tests, the full coverage matrix, Phase 7 behaviour-mismatch protocol. The assertion pattern is [Response Validation](../copilot-instructions.md#rule-response-validation).
 - **`config`** skill — where env variables are declared (`env/.env.example`, dotenv loading) and the consumption decision for `!` vs `??`.
 - **`data-strategy`** skill — Faker factories that return Zod-inferred types; factories call `Schema.parse(...)` internally to guarantee the output matches.
 - **`refactor-values`** skill — safe workflow for changing enum values referenced by `z.literal(...)` or `z.enum([...])`; Anti-Pattern 4 forbids loosening schemas to accommodate drift.
-- **`helpers`** skill — helpers that call APIs apply the same `expect(Schema.parse(body)).toBeTruthy()` pattern (Phase 5).
+- **`helpers`** skill — helpers that call APIs follow [Response Validation](../copilot-instructions.md#rule-response-validation) too (Phase 5).
 - **`debugging`** skill — when `expect(Schema.parse(body)).toBeTruthy()` throws `ZodError`, or when a `zInput` / `zOutput` mismatch produces an unexpected runtime error.
-- **`references/examples.md`** — three worked examples (new schema + test, `zInput` vs `zOutput` with defaults, replacing `as T` casts with Zod parse).
-- **`references/troubleshooting.md`** — common type-safety pitfalls (`z.object()` drift, `process.env` widening, unsafe casts, `zInput` vs `zOutput` confusion, ZodError on contract violations, manual envelope repetition, implicit any in parameters).
+- **[`references/examples.md`](references/examples.md)** — three worked examples (new schema + test, `zInput` vs `zOutput` with defaults, replacing `as T` casts with Zod parse).
+- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common type-safety pitfalls (`z.object()` drift, `process.env` widening, unsafe casts, `zInput` vs `zOutput` confusion, ZodError on contract violations, manual envelope repetition, implicit any in parameters).
