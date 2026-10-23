@@ -2,7 +2,7 @@
 
 Prompt templates for page objects and their locators/actions. The `page-objects`, `selectors`, and `playwright-cli` skills own the deep rules; these are 10-15 line starters. Resolve `{area}` with `ls pages/` first.
 
-> **Important:** Before generating page objects, read the `playwright-cli` skill (`.github/instructions/playwright-cli.instructions.md`) and run **`playwright-cli` in the terminal** (`goto`, `snapshot`, etc.). **Do not** use IDE browser MCP, Cursor browser tools, or any substitute — orchestrator rule **No Substitute UI Exploration**. If the CLI cannot run, stop and notify the human.
+> **Important:** [Explore Before Generate](../../../../copilot-instructions.md#rule-explore-before-generate) and [No Substitute UI Exploration](../../../../copilot-instructions.md#rule-no-substitute-ui-exploration) apply: before generating page objects, read the `playwright-cli` skill and explore with `playwright-cli` in the terminal.
 
 ## Add a New Page Object (With Exploration)
 

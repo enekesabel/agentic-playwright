@@ -2,7 +2,7 @@
 
 Prompt templates for Zod response schemas. The `api-testing` (Phase 1) and `type-safety` skills own the deep rules. Resolve `{area}` with `ls fixtures/api/schemas/` first.
 
-> **Important:** Source schemas from OpenAPI / Swagger documentation when it exists. Only capture the live response shape as a fallback for undocumented endpoints. See the `api-testing` skill (Phase 1).
+> **Important:** [Explore Before Generate](../../../../rules/rules.mdc#rule-explore-before-generate) applies: the OpenAPI / Swagger documentation is the source for schemas, and the live response shape is only a fallback for undocumented endpoints. See the `api-testing` skill (Phase 1).
 
 ## Create a New Zod Schema (From Documentation — Default)
 

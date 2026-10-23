@@ -2,7 +2,7 @@
 
 Prompt templates for functional, E2E, data-driven, and API tests. The `test-standards`, `data-strategy`, and `api-testing` skills own the deep rules. Resolve `{area}` with `ls tests/` first.
 
-> **Important:** Before generating UI tests, explore the user flow with `playwright-cli` (the only sanctioned exploration tool; see the `playwright-cli` skill) to capture the actual steps, selectors, and expected outcomes. If `playwright-cli` cannot run, stop and notify the human.
+> **Important:** [Explore Before Generate](../../../../../CLAUDE.md#rule-explore-before-generate) and [No Substitute UI Exploration](../../../../../CLAUDE.md#rule-no-substitute-ui-exploration) apply: before generating UI tests, explore the user flow with `playwright-cli` (see the `playwright-cli` skill) to capture the actual steps, selectors, and expected outcomes.
 
 ## Create a Functional Test
 

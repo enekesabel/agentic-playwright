@@ -19,13 +19,13 @@ Fields to generate:
 
 ## Add Static Test Data
 
-Before adding static data, pick the right tier per the three-tier rule (see the `api-testing` skill, Phase 6, and the `data-strategy` skill):
+Before adding static data, pick the right tier per [Data Strategy](../../../../copilot-instructions.md#rule-data-strategy) and the three-tier rule (see the `api-testing` skill, Phase 6, and the `data-strategy` skill):
 
 1. **Universal type-mismatch arrays** (wrong type for any field of a given primitive type) → already centralised in `test-data/static/util/invalid-values.ts`. Import from there; do not create new ones.
 2. **Domain-specific curated invalid values** (invalid email formats, password policy violations, invalid locales, forbidden enum values, etc.) → live under `test-data/static/{area}/` — this is the tier a new static file usually belongs to.
 3. **Field-specific boundary / range values** (e.g., out-of-range for a `1..5` number) → may stay inline in the spec when used in exactly one place.
 
-Static data files are TypeScript only (`.ts` with `as const` exports). Never `.json`. The file may export only literal values — no runtime imports, no functions, no Faker.
+Static data files follow [No JSON Static Data](../../../../copilot-instructions.md#rule-no-json-static-data) and [Static Data Literals Only](../../../data-strategy.instructions.md#rule-static-data-literals-only).
 
 ```
 Create static test data for [PURPOSE] at the correct tier:
