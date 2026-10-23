@@ -12,7 +12,7 @@ Actions:
 2. Confirm the Zod schema exists (`fixtures/api/schemas/{area}/productSchema.ts`); if not, follow the `api-testing` skill Phase 2 first.
 3. **Phase 2** — Create `test-data/factories/{area}/product.factory.ts` with `generateProduct(overrides?)` using Faker + `ProductSchema.parse(...)`.
 4. **Phase 4** — Import `generateProduct` in the spec; use the returned object as the request body or form input.
-5. Apply Critical rules: no hardcoded names, JSDoc on the factory, return type is `zOutput<typeof ProductSchema>`.
+5. Apply the Critical rules: [No Hardcoded Test Content](../../../copilot-instructions.md#rule-no-hardcoded-test-content), and the return type is `zOutput<typeof ProductSchema>` ([Factory Validate and Return Inferred Type](../../data-strategy.instructions.md#rule-factory-validate-and-return-inferred-type)). [JSDoc](../../data-strategy.instructions.md#rule-factory-jsdoc) on the factory.
 
 ## Example 2: Add a domain-specific invalid-values set
 
