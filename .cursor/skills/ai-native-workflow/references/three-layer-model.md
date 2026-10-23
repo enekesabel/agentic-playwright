@@ -2,11 +2,11 @@
 
 Read this once, then it's invisible.
 
-| Layer                      | What it is                                                                   | When it loads                                                                                    | Who owns it                                |
-| -------------------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------ |
-| **L1: Orchestrator**       | `.cursor/rules/rules.mdc` — Constitution (MUST/SHOULD/WON'T), Skills Index                 | **Always loaded** at the start of every conversation                                             | Project root                               |
-| **L2: Specialized skills** | `.cursor/skills/{name}/SKILL.md` — deep rules, phased instructions, examples | **Triggered by description keywords** (skill descriptions are matched against the user's intent) | Each `SKILL.md`'s frontmatter description  |
-| **L3: Code conventions**   | The actual TypeScript code: fixtures, page objects, enums, factories, etc.   | **Lives in the repo**; the agent reads it on demand                                              | The codebase + the skills that document it |
+| Layer                      | What it is                                                                            | When it loads                                                                                    | Who owns it                                              |
+| -------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| **L1: Orchestrator**       | [`.cursor/rules/rules.mdc`](../../../rules/rules.mdc) — Constitution (MUST/SHOULD/WON'T), Skills Index | **Always loaded** at the start of every conversation                                             | Project root                                             |
+| **L2: Specialized skills** | `.cursor/skills/{name}/SKILL.md` — deep rules, phased instructions, examples          | **Triggered by description keywords** (skill descriptions are matched against the user's intent) | Each [`SKILL.md`](../SKILL.md)'s frontmatter description |
+| **L3: Code conventions**   | The actual TypeScript code: fixtures, page objects, enums, factories, etc.            | **Lives in the repo**; the agent reads it on demand                                              | The codebase + the skills that document it               |
 
 The skill suite (L2) is the brain. The orchestrator (L1) is the table of contents. The code (L3) is the truth.
 
@@ -20,7 +20,7 @@ The skill suite (L2) is the brain. The orchestrator (L1) is the table of content
 
 ## Implications for Skill Authors
 
-- Don't restate L1 rules inside L2 skills. Link to `.cursor/rules/rules.mdc` instead.
+- Don't restate L1 rules inside L2 skills. Link to the rule's row in [`.cursor/rules/rules.mdc`](../../../rules/rules.mdc) instead (see [Editing the Rule Trees](../../../rules/rules.mdc#editing-the-rule-trees)).
 - Don't restate L3 code shape inside L2 skills. Point at the file.
-- L2 cross-references should use the canonical form `→ see \`{skill}\` Phase N` so the linters can validate them. Two linters gate this in CI (`.github/workflows/skill-lint.yml`, or run `npm run check:skills`locally):`scripts/check-skill-references-drift.sh`(links, anchors,`references/`pointers, orphans) and`scripts/check-skill-crossrefs.sh` (Skills Index ↔ disk sync, frontmatter).
+- L2 cross-references are relative Markdown links whose text is the rule's name, targeting an `rule-<slug>` anchor in the rule's home. Two linters gate this in CI (`.github/workflows/skill-lint.yml`, or run `npm run check:skills` locally): `scripts/check-skill-references-drift.sh` (links, anchors, `references/` pointers, orphans) and `scripts/check-skill-crossrefs.sh` (Skills Index ↔ disk sync, frontmatter).
 - When L2 grows past ~5000 words, split into `references/` per the Claude Code skills guide.

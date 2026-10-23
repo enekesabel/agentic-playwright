@@ -5,7 +5,7 @@ For predictable, repeatable AI collaboration the human and agent follow these pa
 ## Audit-then-Edit (default for non-trivial work)
 
 1. The user states the goal in plain language.
-2. The agent loads the relevant specialized skill(s) and **proposes scope** — what will change, in which files, why, with the trade-offs, plus a 1-10 confidence + rationale + unknowns block (see `SKILL.md` Phase 4).
+2. The agent loads the relevant specialized skill(s) and **proposes scope** — what will change, in which files, why, with the trade-offs, plus the block required by [Confidence Gate Required](../SKILL.md#rule-confidence-gate-required).
 3. The user **approves, modifies, or rejects** the scope.
 4. The agent applies the change.
 5. The agent reports what landed (files, line counts, lint status) and asks whether to commit.
@@ -18,7 +18,7 @@ For predictable, repeatable AI collaboration the human and agent follow these pa
 
 ## When the Agent Must Stop and Ask
 
-- **Primary input missing** for the task (URL for a page object, OpenAPI / spec for an API test, field list for a factory, area folder name for any path-bound work). Ask before producing a Phase 4 proposal — the confidence thresholds (including the < 5 → ASK floor) live canonically in `SKILL.md` "Phase 4 — Confidence-Gate Format" and are not restated here.
+- **Primary input missing** for the task (URL for a page object, OpenAPI / spec for an API test, field list for a factory, area folder name for any path-bound work). Ask before producing a Phase 4 proposal ([Ask On Missing Input](../SKILL.md#rule-ask-on-missing-input)); the thresholds live in [Confidence Gate Thresholds](../SKILL.md#rule-confidence-gate-thresholds).
 - Path or folder name unknown (always `ls` first; if still unclear, ask).
 - Enum value, message text, or endpoint path unknown (always `playwright-cli` for UI text or check OpenAPI for API; ask if neither is available).
 - Two valid approaches with meaningful trade-offs (architectural decisions belong to the human).
@@ -27,9 +27,9 @@ For predictable, repeatable AI collaboration the human and agent follow these pa
 ## When the Agent Must Refuse
 
 - Placeholder selectors / guessed UI text — refuse and re-explore.
-- Hardcoded credentials, URLs, or endpoint paths — refuse and route to `config` / `enums` / `process.env.*`.
-- Suppressed test failures (`try/catch` on `expect`, raised timeouts, silent `.skip`) — refuse and route to `debugging` + `api-testing` Phase 7.
-- `z.object()` instead of `z.strictObject()`, `any` types, XPath selectors, `page.waitForTimeout(...)` — refuse and route to the matching Critical rule.
+- Hardcoded credentials, URLs, or endpoint paths — refuse ([Sources of Truth](../../../rules/rules.mdc#rule-sources-of-truth), [No Secrets](../../../rules/rules.mdc#rule-no-secrets)) and route to `config` / `enums`.
+- Suppressed test failures (`try/catch` on `expect`, raised timeouts, silent `.skip`) — refuse ([Never Suppress Failures](../../debugging/SKILL.md#rule-never-suppress-failures), [No Silent Coverage Drops](../../../rules/rules.mdc#rule-no-silent-coverage-drops)) and route to `debugging` + `api-testing` Phase 7.
+- [No Loose Schemas](../../../rules/rules.mdc#rule-no-loose-schemas), [No Any](../../../rules/rules.mdc#rule-no-any), [No XPath](../../../rules/rules.mdc#rule-no-xpath), [No Hard Waits](../../../rules/rules.mdc#rule-no-hard-waits) violations — refuse and route to the matching rule.
 
 ## After Rejection
 

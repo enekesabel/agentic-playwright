@@ -17,7 +17,7 @@
 
 ## The agent skipped exploration and invented selectors
 
-**Cause:** Forbidden by Critical (`page-objects`, `selectors`, `CLAUDE.md` "No Substitute UI Exploration").
+**Cause:** Forbidden by Critical (`page-objects`, `selectors`) and by [No Substitute UI Exploration](../../../../CLAUDE.md#rule-no-substitute-ui-exploration).
 **Fix:** Reject the output. Re-prompt requiring `playwright-cli` exploration. Ship nothing until selectors come from observed UI.
 
 ## The agent loaded five skills' Critical blocks and is overwhelmed
@@ -37,10 +37,10 @@
 
 ## The agent suppressed a test failure (raised timeout, added `try/catch`, removed an assertion)
 
-**Cause:** Critical rule violation — `debugging` Critical forbids suppression.
+**Cause:** Critical rule violation — see [Never Suppress Failures](../../debugging/SKILL.md#rule-never-suppress-failures).
 **Fix:** Reject the change. Re-load `debugging` and follow Phase 4 (right tool) + Phase 5 (root-cause fix table). For genuine API mismatches, `api-testing` Phase 7 (`test.skip` + `// FIXME:`).
 
 ## The agent skipped Phase 4 (Plan + Confidence) and started editing
 
 **Cause:** Treated audit-then-edit as optional.
-**Fix:** Reject the diff. Require a Phase 4 proposal block with confidence + unknowns before any edit. The only exception is direct-mode trivial work (one-line fix, typo, single import).
+**Fix:** Reject the diff. Require the Phase 4 proposal block ([Confidence Gate Required](../SKILL.md#rule-confidence-gate-required)) before any edit. The only exception is direct-mode trivial work (one-line fix, typo, single import).
