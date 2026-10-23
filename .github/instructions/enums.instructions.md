@@ -82,7 +82,7 @@ When the enum mirrors UI text (error messages, success messages, validation text
 
 Workflow:
 
-1. Read the `playwright-cli` skill instructions.
+1. Read the `playwright-cli` skill (`.github/instructions/playwright-cli.instructions.md`).
 2. Run `playwright-cli` to trigger the relevant action in the app.
 3. Capture the exact rendered text (case, punctuation, whitespace).
 4. Encode it as the enum value.
@@ -107,7 +107,7 @@ Re-use the pattern from `enums/app/app.ts`. The file itself may also carry a top
 
 When you need to change an enum member's string value or rename a member key, the change cascades through tests, page objects, API schemas, and data-driven loops.
 
-**Read the `refactor-values` skill instructions** **before** touching an existing enum. It owns the impact-analysis and cascading-update workflow.
+**Read the `refactor-values` skill** (`.github/instructions/refactor-values.instructions.md`) **before** touching an existing enum. It owns the impact-analysis and cascading-update workflow.
 
 ## Examples
 

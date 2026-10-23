@@ -8,7 +8,7 @@
 ## TypeScript complains `Property LOGIN_ERROR does not exist on type Messages`
 
 **Cause:** Missed consumer after a key rename.
-**Fix:** Run `npx tsc --noEmit` and fix every location it reports. Then search `.md` / `.cursor/rules/*` / `.cursor/skills/*` for the old key name in documentation.
+**Fix:** Run `npx tsc --noEmit` and fix every location it reports. Then search `.md` files for the old key name in documentation.
 
 ## `npx playwright test --grep 'login'` didn't run my test
 
@@ -23,4 +23,4 @@
 ## My global find-and-replace missed matches in README / skill files / rules
 
 **Cause:** Find-and-replace scoped to source files misses documentation.
-**Fix:** Re-grep without file-type filters (`rg "OLD_VALUE"` plain), inspect each hit individually, and update `README.md`, `CHANGELOG.md`, `.cursor/rules/rules.mdc`, and `.cursor/skills/*` where they reference the renamed/updated value.
+**Fix:** Re-grep without file-type filters (`rg "OLD_VALUE"` plain), inspect each hit individually, and update `README.md`, `CHANGELOG.md`, and any `.cursor/skills/*` doc that references the renamed/updated value.

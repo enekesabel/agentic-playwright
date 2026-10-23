@@ -66,7 +66,7 @@ export enum Messages {
 - Every file that referenced `Messages.LOGIN_ERROR` is now a TypeScript error.
 - Run `npx tsc --noEmit` to surface all locations immediately.
 - Update every reference from `Messages.LOGIN_ERROR` to `Messages.AUTH_FAILURE`.
-- Search for the old key as a string in comments or documentation too (`.md` files, `.cursor/rules/*`).
+- Search for the old key as a string in comments or documentation too (`.md` files).
 
 ## Example 4: Static data value changed
 

@@ -38,7 +38,7 @@ rg "ApiEndpoints.LOGIN" .
 rg "'/api/users/login'" .
 ```
 
-> Do this before making any edits. Understand the full blast radius first. Expect matches in `.ts`, `.tsx`, `.md` (instruction files, README, CHANGELOG), and `.json` (Playwright reports — ignore).
+> Do this before making any edits. Understand the full blast radius first. Expect matches in `.ts`, `.tsx`, `.md` (skill files, README, CHANGELOG), and `.json` (Playwright reports — ignore).
 
 ### Phase 2: Categorize impact using the right table
 
@@ -152,3 +152,5 @@ role: z.literal('administrator'),
 - **`type-safety`** skill — Zod schema patterns; `z.literal()` and `z.enum()` that may reference enum values.
 - **`api-testing`** skill — consumers of `ApiEndpoints.*` and how schema drift is handled via `test.skip` + `// FIXME:`.
 - **`debugging`** skill — Phase 4 verification failures during a refactor (text mismatch, ZodError, strict-mode violation) — classify the failure and use the right tool before assuming the refactor itself is wrong.
+- **`references/examples.md`** — four worked refactors (endpoint URL change, UI message wording change, enum key rename, static-data value change).
+- **`references/troubleshooting.md`** — common refactor pitfalls (hardcoded-old-string failure, missed consumer, `--grep` confusion, Zod literal drift, find-and-replace gaps in docs/mirrors).

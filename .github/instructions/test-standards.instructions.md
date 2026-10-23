@@ -275,3 +275,5 @@ Do not finish until the added/modified tests pass consistently. Do not suppress 
 - **`common-tasks`** skill — copy-paste prompt templates for creating spec files of each type.
 - **`refactor-values`** skill — safe workflow for changing enum values or static data used in assertions.
 - **`debugging`** skill — failure-mode taxonomy and the right Playwright tool (UI Mode, Trace Viewer, Inspector) when a test fails or behaves unexpectedly during Phase 9 verification.
+- **`references/examples.md`** — four worked spec patterns (functional smoke, data-driven regression, destructive with cleanup, E2E multi-feature journey).
+- **`references/troubleshooting.md`** — common test-standards pitfalls (`@functional`, tag arrays, wrong imports, hard waits, JSON data, manual instantiation, parallel collisions, destructive leaks, committed explore files).

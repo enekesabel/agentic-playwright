@@ -40,7 +40,7 @@ rg "ApiEndpoints.LOGIN" .
 rg "'/api/users/login'" .
 ```
 
-> Do this before making any edits. Understand the full blast radius first. Expect matches in `.ts`, `.tsx`, `.md` (skill files, README, CHANGELOG), `.json` (Playwright reports — ignore), and `.cursor/rules/*`.
+> Do this before making any edits. Understand the full blast radius first. Expect matches in `.ts`, `.tsx`, `.md` (skill files, README, CHANGELOG), and `.json` (Playwright reports — ignore).
 
 ### Phase 2: Categorize impact using the right table
 

@@ -6,6 +6,13 @@ blob-report/
 .playwright/
 .playwright-cli/
 
+# Cursor and Copilot rule trees -- generated from .claude/ and CLAUDE.md by
+# scripts/build-mirrors.mjs. Path rewriting changes table column widths, and
+# the build must not depend on node_modules, so the output is left unformatted.
+.cursor/skills/
+.github/instructions/
+.github/copilot-instructions.md
+
 # Lockfiles
 package-lock.json
 

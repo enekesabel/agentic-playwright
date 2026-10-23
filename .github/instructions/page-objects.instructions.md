@@ -202,7 +202,7 @@ Never create a page object from assumptions, wireframes, or documentation alone.
 2. **Explore like a user** — navigate through the feature, trigger CRUD operations, observe forms, buttons, feedback messages, validation errors, and dynamic content.
 3. Record every observed element's role, accessible name, label, and (if applicable) test ID.
 
-Read the full workflow in the `selectors` skill ("Exploration-First Workflow" section) and `playwright-cli` skill for the specific commands.
+Read the full workflow in the `selectors` skill (`.github/instructions/selectors.instructions.md` → "Exploration-First Workflow") and `playwright-cli` skill for the specific commands.
 
 **Forbidden:** Skipping exploration. If the application is unavailable, say so and wait — do not create placeholder locators with guessed names.
 
@@ -294,3 +294,5 @@ test(
 - **`common-tasks`** skill — prompt templates for "Add a New Page Object (With / Without Exploration)" and "Add Locators to Existing Page".
 - **`api-testing`** skill — helper fixtures and factories used from page-object tests.
 - **`debugging`** skill — when a test using this page object fails, classify the failure (TimeoutError on action, locator returned multiple, etc.) and use the right tool to investigate before changing the page object.
+- **`references/examples.md`** — three end-to-end walkthroughs (new page, locator addition, component extraction).
+- **`references/troubleshooting.md`** — common page-object pitfalls and their fixes.

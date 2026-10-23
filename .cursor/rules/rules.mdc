@@ -134,7 +134,6 @@ Detailed skills live in `.cursor/skills/` and contain in-depth rules, patterns, 
 
 Skills are at `.cursor/skills/{name}/SKILL.md`. Read the relevant skill file before generating or modifying code in that area.
 
-
 ---
 
 ## Container Environment

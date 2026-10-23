@@ -28,7 +28,7 @@
 ## The agent's commit message says only "Update tests"
 
 **Cause:** Phase 8 skipped.
-**Fix:** Reject the message; require a body that names the _why_ and the substantive changes. The orchestrator's commit history (`Refine X skill ...`, `Sync rules ...`, `Add debugging skill ...`) is the reference shape.
+**Fix:** Reject the message; require a body that names the _why_ and the substantive changes. The orchestrator's commit history (`Refine X skill ...`, `Sync .cursor/rules/rules.mdc ...`, `Add debugging skill ...`) is the reference shape.
 
 ## The agent wants to run `npm test` after every micro-change
 
