@@ -5,8 +5,8 @@
 **Cause:** The API response disagrees with the schema (extra field, missing field, wrong type, wrong nullability).
 **Fix:**
 
-- **If OpenAPI / Swagger documentation exists and the schema was built from it**, this is a contract violation — treat it as a bug. Follow Phase 7: keep the test as the spec says, wrap with `test.skip` + `// FIXME: <ticket-url>`, and report the discrepancy. Do **NOT** loosen the schema to make the error go away.
-- **If no documentation exists** (Phase 1 fallback path), re-inspect the real response and update the schema to match. Never relax to `z.any()`.
+- **If OpenAPI / Swagger documentation exists and the schema was built from it**, this is a contract violation — treat it as a bug. Follow Phase 7: keep the test as the spec says, wrap with `test.skip` + `// FIXME: <ticket-url>`, and report the discrepancy. Do not loosen the schema to make the error go away ([Explore Before Generate](../../../../CLAUDE.md#rule-explore-before-generate)).
+- **If no documentation exists** (Phase 1 fallback path), re-inspect the real response and update the schema to match. Never relax to `z.any()` ([No `any`](../../../../CLAUDE.md#rule-no-any)).
 
 ## 401 or 403 returns `null` body and the schema throws
 
@@ -16,11 +16,11 @@
 ## Actual status code differs from the OpenAPI spec
 
 **Cause:** Backend bug or spec drift.
-**Fix:** Follow Phase 7 — keep the test as the spec says, wrap with `test.skip`, add a `// FIXME: <ticket-url>` comment and `// eslint-disable-next-line playwright/no-skipped-test` directly above it. Never change the expected status to match the bug.
+**Fix:** Follow Phase 7 — keep the test as the spec says, wrap with `test.skip`, add a `// FIXME: <ticket-url>` comment and `// eslint-disable-next-line playwright/no-skipped-test` directly above it. Never change the expected status to match the bug ([No Silent Coverage Drops](../../../../CLAUDE.md#rule-no-silent-coverage-drops)).
 
 ## Only an empty-body `400` test exists for a POST/PUT/PATCH
 
-**Cause:** Coverage gap — empty-body alone is forbidden (Phase 6).
+**Cause:** Coverage gap — see [No Empty-Body-Only 400](../../../../CLAUDE.md#rule-no-empty-body-only-400) (Phase 6).
 **Fix:** Add two additional loops: per-field invalid types (spread-and-override) and per-field omission (destructure + rest).
 
 ## ESLint fails with `playwright/no-skipped-test` on an intentional `test.skip`
@@ -33,9 +33,9 @@
 
 ## Helper fixture duplicates setup that only one spec file uses
 
-**Cause:** Helper fixtures are only for setup/teardown reused across 3+ files.
+**Cause:** See [Helper Fixture Promotion (3+ files)](../SKILL.md#rule-helper-fixture-promotion-3plus).
 **Fix:** Move the logic back to `beforeAll`/`afterAll` in the single spec file and call `apiRequest` directly (Phase 8 rule of thumb).
 
 ## Test hardcodes `https://...` or a raw token
 
-**Fix:** Replace with `process.env.API_URL`, `process.env.ACCESS_TOKEN` (or `ACCESS_TOKEN_ZERO` for zero-permission cases), and `ApiEndpoints.*` enum entries for paths.
+**Fix:** ([Sources of Truth](../../../../CLAUDE.md#rule-sources-of-truth)) Replace with `process.env.API_URL`, `process.env.ACCESS_TOKEN` (or `ACCESS_TOKEN_ZERO` for zero-permission cases), and `ApiEndpoints.*` enum entries for paths.

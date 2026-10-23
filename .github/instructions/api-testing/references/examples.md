@@ -1,6 +1,6 @@
 # API Testing — Worked Examples
 
-Three end-to-end walkthroughs aligned with the 8-phase `ai-native-workflow`. The phase numbers below refer to `api-testing/SKILL.md`'s in-skill phases.
+Three end-to-end walkthroughs aligned with the 8-phase `ai-native-workflow`. The phase numbers below refer to [`api-testing/SKILL.md`](../../api-testing.instructions.md)'s in-skill phases.
 
 ## Example 1: Adding tests for a brand-new endpoint
 

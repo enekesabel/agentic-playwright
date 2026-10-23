@@ -1,6 +1,6 @@
 # Helper Fixture — Worked Example
 
-Full code from Phase 8 of `api-testing/SKILL.md`. The decision matrix and the rule of thumb stay inline; this file shows the lifecycle-wired helper-fixture pattern.
+Full code from Phase 8 of [`api-testing/SKILL.md`](../SKILL.md). The decision matrix and the rule of thumb stay inline; this file shows the lifecycle-wired helper-fixture pattern.
 
 ## Pattern
 
@@ -51,6 +51,6 @@ test(
 
 ## When to promote (decision rule)
 
-Promote setup/teardown to a helper fixture **only** when the same multi-step setup/teardown is reused across **3+ test files**. Otherwise keep the logic in `beforeAll`/`afterAll` in the single spec file and call `apiRequest` directly.
+The rule is [Helper Fixture Promotion (3+ files)](../SKILL.md#rule-helper-fixture-promotion-3plus). Below that threshold, keep the logic in `beforeAll`/`afterAll` in the single spec file and call `apiRequest` directly.
 
-For the full decision matrix (`apiRequest` fixture vs helper fixture vs factory function) see `SKILL.md` Phase 8.
+For the full decision matrix (`apiRequest` fixture vs helper fixture vs factory function) see [`SKILL.md`](../SKILL.md) Phase 8.

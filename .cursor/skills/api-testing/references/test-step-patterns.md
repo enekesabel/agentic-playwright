@@ -1,6 +1,6 @@
 # test.step Patterns and Empty-Body Anti-Pattern
 
-Long-form contrast examples extracted from `api-testing/SKILL.md` Phase 4 and Phase 6. The Critical rules and the canonical "correct" patterns stay inline in `SKILL.md`; this file holds the verbose forbidden examples for cases where reading them helps.
+Long-form contrast examples extracted from [`api-testing/SKILL.md`](../SKILL.md) Phase 4 and Phase 6. The Critical rules and the canonical "correct" patterns stay inline in [`SKILL.md`](../SKILL.md); this file holds the verbose forbidden examples for cases where reading them helps.
 
 ## Phase 4 — Forbidden: multiple API calls without `test.step`
 
@@ -41,7 +41,7 @@ test(
 
 Why it's forbidden: the trace shows one big test with no per-call breakdown. Debugging which call failed requires reading the assertions; reporting can't surface the create-vs-get-vs-delete structure.
 
-**Fix:** Wrap each call in `test.step('<verb> <resource> via <METHOD> <PATH>', async () => { ... })`. See `SKILL.md` Phase 4 for the canonical correct pattern.
+**Fix:** Apply [API Test Steps](../../../rules/rules.mdc#rule-api-test-steps): wrap each call in `test.step('<verb> <resource> via <METHOD> <PATH>', async () => { ... })`. See [`SKILL.md`](../SKILL.md) Phase 4 for the canonical correct pattern.
 
 ## Phase 6 — Forbidden: empty-body-only validation
 
@@ -67,6 +67,6 @@ test.describe('POST /api/products - validation', () => {
 });
 ```
 
-An empty-body test is one of many — not a substitute for per-field coverage.
+An empty-body test is one of many — not a substitute for per-field coverage ([No Empty-Body-Only 400](../../../rules/rules.mdc#rule-no-empty-body-only-400)).
 
-**Fix:** Add two more loops: per-field omission (destructure + rest) and per-field invalid-type (`for...of` over `INVALID_*` from `test-data/static/util/invalid-values.ts`). See `SKILL.md` Phase 6 for the canonical patterns.
+**Fix:** Add two more loops: per-field omission (destructure + rest) and per-field invalid-type (`for...of` over `INVALID_*` from `test-data/static/util/invalid-values.ts`). See [`SKILL.md`](../SKILL.md) Phase 6 for the canonical patterns.
