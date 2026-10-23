@@ -5,7 +5,8 @@
 # reviewer doesn't have to eyeball them (and can't miss one). Judgment items
 # (coverage gaps, sibling divergence, schema-vs-contract fidelity) are NOT here
 # — those stay with the model. Every check maps to a row in
-# references/constitution-checklist.md by its [#].
+# references/constitution-checklist.md by its [#], and names the Constitution
+# row it enforces in a comment, as a link relative to this file.
 #
 # Usage:
 #   scan-constitution.sh [base]          # base defaults to master; diffs base...HEAD
@@ -88,25 +89,27 @@ g() {
 echo "=== Constitution scan (mechanical) — base ${BASE} ==="
 echo
 
-# [3] no `any`
+# [3] no `any` -- ../../../../CLAUDE.md#rule-no-any
 report "🔴" "[3] no 'any' type" \
     "$(g ':\s*any\b|<any>|as any|Array<any>|: any\[\]' "${TS_FILES[@]:-}")"
 
 # [4] strict schemas — z.object( is forbidden in schema files
+#     ../../../../CLAUDE.md#rule-strict-schemas ../../../../CLAUDE.md#rule-no-loose-schemas
 report "🔴" "[4] z.strictObject (no z.object)" \
     "$(g '\bz\.object\(' "${TS_FILES[@]:-}")"
 
-# [20] no hard waits
+# [20] no hard waits -- ../../../../CLAUDE.md#rule-no-hard-waits
 report "🔴" "[20] no waitForTimeout / hard waits" \
     "$(g 'waitForTimeout' "${TS_FILES[@]:-}")"
 
-# [16] no XPath
+# [16] no XPath -- ../../../../CLAUDE.md#rule-no-xpath
 report "🔴" "[16] no XPath selectors" \
     "$(g "xpath=|locator\(['\"]//|locator\(['\"]\.\.//" "${TS_FILES[@]:-}")"
 
 # [1] spec files must import the test/expect FIXTURES from test-options, not
 # @playwright/test. Type-only imports (Locator, Page, APIResponse, ...) from
 # @playwright/test are fine — only flag when `test` or `expect` is pulled from it.
+# ../../../../CLAUDE.md#rule-imports
 report "🔴" "[1] specs import test/expect from test-options, not @playwright/test" \
     "$(g "import\s*\{[^}]*\b(test|expect)\b[^}]*\}\s*from\s*['\"]@playwright/test['\"]" "${SPEC_FILES[@]:-}")"
 # Informational: any other @playwright/test import in a spec (usually a type) —
@@ -115,10 +118,12 @@ OTHER_PW_IMPORT="$(g "from ['\"]@playwright/test['\"]" "${SPEC_FILES[@]:-}" | gr
 [[ -n "${OTHER_PW_IMPORT// }" ]] && { echo "ℹ️  [1] other @playwright/test imports in specs (ok if type-only):"; echo "${OTHER_PW_IMPORT}" | sed 's/^/      /'; }
 
 # [2] no manual page-object instantiation in specs
+#     ../../../../CLAUDE.md#rule-no-manual-instantiation
 report "🔴" "[2] no 'new XxxPage()/XxxComponent()' in specs" \
     "$(g 'new [A-Z][A-Za-z0-9_]*(Page|Component)\s*\(' "${SPEC_FILES[@]:-}")"
 
 # [25] forbidden @functional tag, and tags on describe
+#      ../../../../CLAUDE.md#rule-no-multiple-tags ../../../../CLAUDE.md#rule-no-tags-on-describe
 report "🔴" "[25] no @functional tag" \
     "$(g '@functional' "${TS_FILES[@]:-}")"
 # Only the six canonical Constitution tags — repo-specific area tags are not
@@ -126,7 +131,7 @@ report "🔴" "[25] no @functional tag" \
 report "🔴" "[25] no tag on test.describe()" \
     "$(g "describe\([^)]*@(smoke|sanity|regression|e2e|api|destructive)" "${TS_FILES[@]:-}")"
 
-# [23] static data must be .ts, never .json
+# [23] static data must be .ts, never .json -- ../../../../CLAUDE.md#rule-no-json-static-data
 if [[ ${#STATIC_JSON[@]} -gt 0 ]]; then
     echo "❌ 🔴 [23] no JSON under test-data/static"
     printf '      %s\n' "${STATIC_JSON[@]}"
@@ -136,16 +141,19 @@ else
 fi
 
 # [21] magic-number timeouts: numeric literal passed to timeout:
+#      ../../../../CLAUDE.md#rule-no-magic-numbers
 soft_report "🟡" "[21] possible magic-number timeout" \
     "$(g 'timeout:\s*[0-9]{3,}' "${TS_FILES[@]:-}")"
 
 # [12] hardcoded http(s) URL literal (should come from env/config)
+#      ../../../../CLAUDE.md#rule-sources-of-truth
 soft_report "🟡" "[12] possible hardcoded URL (should be env/config)" \
     "$(g "(baseUrl|url|apiUrl)\s*:\s*['\"]https?://" "${TS_FILES[@]:-}")"
 
 # [8] response assertion shape — informational: list Schema.parse() calls so the
 # reviewer can confirm each is the `expect(Schema.parse(body)).toBeTruthy()` form.
 # Exclude JSON.parse — that's deserialization, not schema validation.
+# ../../../../CLAUDE.md#rule-response-validation
 PARSE_HITS="$(g '\.parse\(' "${SPEC_FILES[@]:-}" | grep -vE '\bJSON\.parse\(' || true)"
 echo "ℹ️  [8] Schema.parse() call sites (verify each is expect(...).toBeTruthy()):"
 [[ -n "${PARSE_HITS// }" ]] && echo "${PARSE_HITS}" | sed 's/^/      /' || echo "      (none)"

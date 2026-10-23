@@ -32,7 +32,7 @@
         "build:mirrors": "node scripts/build-mirrors.mjs",
         "test:mirrors": "bash scripts/tests/build-mirrors.test.sh",
         "check:mirrors": "bash scripts/check-mirrors.sh",
-        "check:gates-selftest": "bash scripts/tests/run.sh",
+        "check:gates-selftest": "bash scripts/tests/run.sh && bash scripts/tests/enforce-constitution.test.sh",
         "version:stamp": "bash scripts/stamp-version.sh",
         "check:version": "bash scripts/check-version-drift.sh",
         "skills:verify": "bash scripts/sync-upstream-skills.sh verify",
