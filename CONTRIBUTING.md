@@ -25,6 +25,7 @@ npx playwright test        # requires env/.env.dev — see README "Environment V
 ## Ground rules for changes
 
 - **Follow the Constitution.** The rules in `CLAUDE.md` apply to contributed test code too: fixtures over manual instantiation, web-first assertions, no hard waits, no `any`, `z.strictObject()` for API schemas, one tag per test.
+- **Follow the rule-tree conventions.** When you edit the Constitution or a skill, keep one home per rule and link to it instead of restating it; see [Editing the Rule Trees](CLAUDE.md#editing-the-rule-trees).
 - **Edit the canonical tree; the mirrors are generated.** Change `CLAUDE.md` or `.claude/skills/`, then run `npm run build:mirrors` to regenerate `.cursor/` and `.github/`. The pre-commit hook does this and stages the result whenever a canonical file is staged; CI rejects stale mirrors. Never edit the mirror files by hand.
 - **Vendored skills are off-limits for direct edits.** `skill-creator` and `playwright-cli` are tracked in `skills-lock.json` and synced from upstream; local edits get overwritten. Open an issue instead.
 - **New behavior needs an example.** A new pattern (fixture type, data tier, selector rule) should come with a small example file demonstrating it.
