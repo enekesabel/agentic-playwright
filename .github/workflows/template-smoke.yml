@@ -68,3 +68,16 @@ jobs:
                   test ! -e .cursor
                   test ! -e .github/instructions
                   test ! -e .github/copilot-instructions.md
+
+            # No Claude tree: CLAUDE.md, .claude/ and the write-time hook are
+            # gone, so links to them must have been unlinked at init and the
+            # hook self-test must skip rather than fail.
+            - name: No-Claude variant — gates still green without the Claude tree
+              run: |
+                  cd /tmp/smoke
+                  node package/bin/create.js noclaude-project --demo --no-claude --skip-install --skip-git
+                  cd noclaude-project
+                  bash scripts/check-skill-references-drift.sh
+                  bash scripts/check-skill-crossrefs.sh
+                  bash scripts/tests/run.sh
+                  bash scripts/tests/enforce-constitution.test.sh

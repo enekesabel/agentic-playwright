@@ -112,7 +112,7 @@ fi
 
 # --- 4. Pruned mirror trees are skipped, not recreated ---
 # Same paths the initializer removes for --no-cursor / --no-copilot.
-git -C "${SCRATCH}" checkout -q -- .claude/skills/fixtures/SKILL.md
+git -C "${SCRATCH}" checkout -q -- .claude/skills/fixtures/SKILL.md .claude/skills/playwright-cli/SKILL.md
 assert_absent() {
     local label="$1"
     shift

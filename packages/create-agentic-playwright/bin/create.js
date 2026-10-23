@@ -202,6 +202,38 @@ function pruneTree(projectDir, relPaths) {
     }
 }
 
+/**
+ * Rewrite Markdown links that point into pruned paths as plain text, so the
+ * shipped root docs (README, AI-WORKFLOWS) and the Copilot review prompt,
+ * which points Copilot at the Claude pr-reviewer skill, carry no dead links
+ * in a project scaffolded without one of the rule trees.
+ */
+function unlinkPrunedRefs(projectDir, relFiles, prunedPaths) {
+    const linkRe = /\[([^\]]+)\]\(([^)\s]+)\)/g;
+    // Bare `path.md#anchor` references, as used in code comments
+    // (e.g. eslint.config.mts). Replaced by the anchor name alone.
+    const bareRe = /(?:\.\.\/)*[\w./-]+\.md#([\w-]+)/g;
+    const isDead = (target) => {
+        const targetPath = path.posix.normalize(target.split('#')[0]);
+        return prunedPaths.some(
+            (p) => targetPath === p || targetPath.startsWith(`${p}/`)
+        );
+    };
+    for (const rel of relFiles) {
+        const file = path.join(projectDir, rel);
+        if (!fs.existsSync(file)) continue;
+        const text = fs.readFileSync(file, 'utf8');
+        const fromDir = path.posix.dirname(rel);
+        let out = text.replace(linkRe, (match, label, target) =>
+            isDead(path.posix.join(fromDir, target)) ? label : match
+        );
+        out = out.replace(bareRe, (match, anchor) =>
+            isDead(path.posix.join(fromDir, match)) ? anchor : match
+        );
+        if (out !== text) fs.writeFileSync(file, out);
+    }
+}
+
 const CLAUDE_PATHS = ['.claude', 'CLAUDE.md'];
 const CURSOR_PATHS = ['.cursor'];
 const COPILOT_PATHS = [
@@ -382,6 +414,20 @@ async function main() {
         pruned.push('Copilot');
     }
     if (pruned.length) {
+        unlinkPrunedRefs(
+            projectDir,
+            [
+                'README.md',
+                'AI-WORKFLOWS.md',
+                'eslint.config.mts',
+                '.github/prompts/pr-reviewer.prompt.md',
+            ],
+            [
+                ...(keepClaude ? [] : CLAUDE_PATHS),
+                ...(keepCursor ? [] : CURSOR_PATHS),
+                ...(keepCopilot ? [] : COPILOT_PATHS),
+            ]
+        );
         log(`  Pruned rule trees: ${pruned.join(', ')} (gates tolerate this).`);
     }
 

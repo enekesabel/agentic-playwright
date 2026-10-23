@@ -14,6 +14,11 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 HOOK="${REPO_ROOT}/.claude/scripts/enforce_constitution.py"
 
+if [[ ! -f "${HOOK}" ]]; then
+    echo "SKIP: write-time hook not present (Claude rule tree pruned at init) — nothing to test."
+    exit 0
+fi
+
 failures=0
 
 # Args: label, payload, expected exit, expected stderr (exact).
