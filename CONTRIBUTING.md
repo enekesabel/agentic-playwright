@@ -4,13 +4,13 @@ Thanks for your interest in improving Agentic Playwright!
 
 ## Before you start
 
-This repository is unusual in one important way: **the AI rule trees are part of the product.** The Constitution (`CLAUDE.md`), the skills (`.claude/skills/`), and their mirrors for Cursor (`.cursor/`) and GitHub Copilot (`.github/`) define how AI coding agents behave inside a generated project. Changes to code and changes to rules usually travel together.
+This repository is unusual in one important way: **the AI rule trees are part of the product.** The Constitution ([`CLAUDE.md`](CLAUDE.md)), the skills (`.claude/skills/`), and their mirrors for Cursor (`.cursor/`) and GitHub Copilot (`.github/`) define how AI coding agents behave inside a generated project. Changes to code and changes to rules usually travel together.
 
 That means contributions are checked by more gates than a typical repo:
 
 1. **ESLint + Prettier + `tsc --noEmit`** — standard code quality.
 2. **Skill lint (`npm run check:skills`)** — the Skills Index matches the skill folders on disk, every `SKILL.md` frontmatter has a matching `name` and a `description`, and every relative link and `file#anchor` reference in the rule trees, root docs and gate scripts resolves.
-3. **Mirror check (`npm run check:mirrors`)** — the Cursor (`.cursor/`) and Copilot (`.github/`) trees are generated from `CLAUDE.md` and `.claude/skills/`; the check fails if the committed mirrors differ from a fresh build.
+3. **Mirror check (`npm run check:mirrors`)** — the Cursor (`.cursor/`) and Copilot (`.github/`) trees are generated from [`CLAUDE.md`](CLAUDE.md) and `.claude/skills/`; the check fails if the committed mirrors differ from a fresh build.
 4. **Version single-sourcing (`npm run check:version`)** — `VERSION`, `package.json`, and the latest `CHANGELOG.md` heading must agree.
 
 Run everything locally before pushing:
@@ -24,9 +24,9 @@ npx playwright test        # requires env/.env.dev — see README "Environment V
 
 ## Ground rules for changes
 
-- **Follow the Constitution.** The rules in `CLAUDE.md` apply to contributed test code too: fixtures over manual instantiation, web-first assertions, no hard waits, no `any`, `z.strictObject()` for API schemas, one tag per test.
+- **Follow the Constitution.** The rules in [`CLAUDE.md`](CLAUDE.md) apply to contributed test code too: fixtures over manual instantiation, web-first assertions, no hard waits, no `any`, `z.strictObject()` for API schemas, one tag per test.
 - **Follow the rule-tree conventions.** When you edit the Constitution or a skill, keep one home per rule and link to it instead of restating it; see [Editing the Rule Trees](CLAUDE.md#editing-the-rule-trees).
-- **Edit the canonical tree; the mirrors are generated.** Change `CLAUDE.md` or `.claude/skills/`, then run `npm run build:mirrors` to regenerate `.cursor/` and `.github/`. The pre-commit hook does this and stages the result whenever a canonical file is staged; CI rejects stale mirrors. Never edit the mirror files by hand.
+- **Edit the canonical tree; the mirrors are generated.** Change [`CLAUDE.md`](CLAUDE.md) or `.claude/skills/`, then run `npm run build:mirrors` to regenerate `.cursor/` and `.github/`. The pre-commit hook does this and stages the result whenever a canonical file is staged; CI rejects stale mirrors. Never edit the mirror files by hand.
 - **Vendored skills are off-limits for direct edits.** `skill-creator` and `playwright-cli` are tracked in `skills-lock.json` and synced from upstream; local edits get overwritten. Open an issue instead.
 - **New behavior needs an example.** A new pattern (fixture type, data tier, selector rule) should come with a small example file demonstrating it.
 
