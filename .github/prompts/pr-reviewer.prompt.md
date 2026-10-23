@@ -5,7 +5,7 @@ description: Review a Git branch as a PR against the base branch (auto-resolved 
 
 # PR Reviewer
 
-You are reviewing a branch as a pull request, the way a careful human reviewer on this team would — against **this repo's own contract**, not generic best practice. The contract is `CLAUDE.md` (the Constitution — MUST / SHOULD / WON'T tables) plus the specialized skill files in `.claude/skills/` that govern whatever the branch touched. A finding only counts if you can tie it to a concrete rule, a real bug, or a coverage gap — opinion without a rule behind it is noise.
+You are reviewing a branch as a pull request, the way a careful human reviewer on this team would — against **this repo's own contract**, not generic best practice. The contract is [`CLAUDE.md`](../../CLAUDE.md) (the Constitution — MUST / SHOULD / WON'T tables) plus the specialized skill files in `.claude/skills/` that govern whatever the branch touched. A finding only counts if you can tie it to a concrete rule, a real bug, or a coverage gap — opinion without a rule behind it is noise.
 
 The deliverable is a **report**, not a code change. Fixing is opt-in, after the report.
 
@@ -41,7 +41,7 @@ Three-dot diffs against the **merge-base** — only what the branch authored. Tw
 
 ### Phase 3 — Route changed paths to skills
 
-Read the routed skill files in `.claude/skills/<name>/SKILL.md` before reviewing; always also hold `CLAUDE.md`.
+Read the routed skill files in `.claude/skills/<name>/SKILL.md` before reviewing; always also hold [`CLAUDE.md`](../../CLAUDE.md).
 
 | Changed path (glob)                                         | Read these skills                                 |
 | ----------------------------------------------------------- | ------------------------------------------------- |
@@ -108,11 +108,11 @@ Check at minimum:
 .claude/skills/pr-reviewer/scripts/scan-constitution.sh "$BASE"
 ```
 
-Then read `.claude/skills/pr-reviewer/references/constitution-checklist.md` and walk the judgment items (coverage gaps, sibling divergence, schema-vs-contract fidelity, cleanup hooks, return types, feedback-message selectors) against the three-dot diff. Record ✅/❌/➖ with `file:line`. Every ❌ becomes a report finding at its tier. Couldn't evaluate (env) → say so, don't mark ✅.
+Then read [`.claude/skills/pr-reviewer/references/constitution-checklist.md`](../../.claude/skills/pr-reviewer/references/constitution-checklist.md) and walk the judgment items (coverage gaps, sibling divergence, schema-vs-contract fidelity, cleanup hooks, return types, feedback-message selectors) against the three-dot diff. Record ✅/❌/➖ with `file:line`. Every ❌ becomes a report finding at its tier. Couldn't evaluate (env) → say so, don't mark ✅.
 
 ### Phase 7 — Report
 
-Use `.claude/skills/pr-reviewer/assets/report-template.md`. Tiered (🔴/🟠/🟡) + ✅ Good + verdict + **confidence score with rationale** + open-questions-for-author. Every Phase-6 ❌ appears.
+Use [`.claude/skills/pr-reviewer/assets/report-template.md`](../../.claude/skills/pr-reviewer/assets/report-template.md). Tiered (🔴/🟠/🟡) + ✅ Good + verdict + **confidence score with rationale** + open-questions-for-author. Every Phase-6 ❌ appears.
 **Default: report in chat.** Post to the GitHub PR only when asked: `gh pr view <branch> --json number`, then summary (`gh pr review <number> --comment --body-file <report.md>`) or inline via `gh api repos/{owner}/{repo}/pulls/<number>/reviews` with `commit_id=$(git rev-parse HEAD)`. NEVER `--approve`/`--request-changes` — `--comment` only.
 **Stop here.** Do not modify any file.
 
