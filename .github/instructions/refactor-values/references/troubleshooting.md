@@ -18,9 +18,9 @@
 ## Zod schema throws `Invalid literal value` after updating an enum value
 
 **Cause:** The schema still has `z.literal('old-value')` or `z.enum([..., 'old-value'])`.
-**Fix:** Update the literal/enum to the new value. Do **not** relax to `z.string()` — that hides future drift (see Anti-Pattern 4 in `SKILL.md`).
+**Fix:** Update the literal/enum to the new value. Do not relax to `z.string()` ([Explore Before Generate](../../../copilot-instructions.md#rule-explore-before-generate)) — that hides future drift (see Anti-Pattern 4 in [`SKILL.md`](../../refactor-values.instructions.md)).
 
 ## My global find-and-replace missed matches in README / skill files / rules
 
 **Cause:** Find-and-replace scoped to source files misses documentation.
-**Fix:** Re-grep without file-type filters (`rg "OLD_VALUE"` plain), inspect each hit individually, and update `README.md`, `CHANGELOG.md`, and any `.github/instructions/*` doc that references the renamed/updated value.
+**Fix:** ([No Global Find Replace](../../refactor-values.instructions.md#rule-no-global-find-replace)) Re-grep without file-type filters (`rg "OLD_VALUE"` plain), inspect each hit individually, and update `README.md`, `CHANGELOG.md`, and any `.github/instructions/*` doc that references the renamed/updated value.

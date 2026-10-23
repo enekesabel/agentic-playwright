@@ -6,18 +6,19 @@ applyTo: 'enums/**/*.ts,test-data/static/**/*.ts'
 
 ## Critical
 
-- **ALWAYS** run Phase 1 (find all consumers) before making any edit. Enum values and static data feed into tests, page objects, schemas, and assertions — the blast radius must be known up front.
+- <a id="rule-refactor-impact-first"></a>**ALWAYS** run Phase 1 (find all consumers) before making any edit. Enum values and static data feed into tests, page objects, schemas, and assertions — the blast radius must be known up front.
 - **ALWAYS** search for both the **enum key** (`Messages.LOGIN_ERROR`) **and the raw string value** (`'Invalid email or password'`). Some consumers may have bypassed the enum and hardcoded the string — they won't update when you change the enum.
-- **NEVER** update an enum value, rename a key, or edit a static-data file without updating every consumer **in the same commit** (atomicity — no intermediate broken state).
+- <a id="rule-refactor-atomic"></a>**NEVER** update an enum value, rename a key, or edit a static-data file without updating every consumer **in the same commit** (atomicity — no intermediate broken state).
 - **NEVER** loosen a Zod schema (`z.literal` / `z.enum`) to make an updated value pass. Update the schema to match the new value; the schema is the contract.
-- **ALWAYS** run `npx tsc --noEmit` + `npx eslint .` + the affected tests before concluding the refactor. TypeScript catches key renames; eslint catches stale patterns; tests catch assertion drift.
-- **NEVER** use a single global find-and-replace — it misses case variants, hardcoded copies, and references inside comments, documentation, and sibling skill files. Inspect each match.
+- **ALWAYS** run `npx tsc --noEmit` + `npx eslint .` + the affected tests before concluding the refactor. TypeScript catches key renames; eslint catches stale patterns; tests catch assertion drift. See [Linting](../copilot-instructions.md#rule-linting) and [Test Verification](../copilot-instructions.md#rule-test-verification).
+- <a id="rule-no-global-find-replace"></a>**NEVER** use a single global find-and-replace — it misses case variants, hardcoded copies, and references inside comments, documentation, and sibling skill files. Inspect each match.
+- Constitution rules that apply here: [Enums for Strings](../copilot-instructions.md#rule-enums-for-strings), [Explore Before Generate](../copilot-instructions.md#rule-explore-before-generate), [Linting](../copilot-instructions.md#rule-linting), [Test Verification](../copilot-instructions.md#rule-test-verification).
 
 ## Instructions
 
 ### Phase 1: Find all consumers before touching anything
 
-Search the **entire codebase** for every occurrence of both:
+Search the **entire codebase** ([Refactor Impact First](#rule-refactor-impact-first)) for every occurrence of both:
 
 1. The **enum key** (the import reference consumers use).
 2. The **current string value** (the raw string — catches hardcoded usages that bypass the enum).
@@ -73,7 +74,7 @@ Pick the table that matches the change you are making.
 
 ### Phase 3: Make all changes atomically
 
-Update the source (enum or static-data file) **and all consumers in one pass**. Never leave an intermediate broken state where the value is changed but consumers still reference the old value.
+Update the source (enum or static-data file) **and all consumers in one pass**. This is [Refactor Atomic](#rule-refactor-atomic): never leave an intermediate broken state where the value is changed but consumers still reference the old value.
 
 Recommended order:
 
@@ -152,5 +153,5 @@ role: z.literal('administrator'),
 - **`type-safety`** skill — Zod schema patterns; `z.literal()` and `z.enum()` that may reference enum values.
 - **`api-testing`** skill — consumers of `ApiEndpoints.*` and how schema drift is handled via `test.skip` + `// FIXME:`.
 - **`debugging`** skill — Phase 4 verification failures during a refactor (text mismatch, ZodError, strict-mode violation) — classify the failure and use the right tool before assuming the refactor itself is wrong.
-- **`references/examples.md`** — four worked refactors (endpoint URL change, UI message wording change, enum key rename, static-data value change).
-- **`references/troubleshooting.md`** — common refactor pitfalls (hardcoded-old-string failure, missed consumer, `--grep` confusion, Zod literal drift, find-and-replace gaps in docs/mirrors).
+- **[`references/examples.md`](references/examples.md)** — four worked refactors (endpoint URL change, UI message wording change, enum key rename, static-data value change).
+- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common refactor pitfalls (hardcoded-old-string failure, missed consumer, `--grep` confusion, Zod literal drift, find-and-replace gaps in docs/mirrors).

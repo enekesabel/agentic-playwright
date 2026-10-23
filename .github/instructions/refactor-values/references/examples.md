@@ -18,7 +18,7 @@ export enum ApiEndpoints {
 
 **Required follow-up:**
 
-- Search for `'/api/users/login'` — anyone who hardcoded it instead of using the enum must be updated.
+- Search for `'/api/users/login'` ([Refactor Impact First](../../refactor-values.instructions.md#rule-refactor-impact-first)) — anyone who hardcoded it instead of using the enum must be updated.
 - Search for `ApiEndpoints.LOGIN` — verify all usages are correct (no string concatenation that would silently use the old value).
 - Check `fixtures/api/schemas/` for any schema using the old path as a `z.literal()`.
 - Check `helpers/` and `tests/{area}/auth.setup.ts` for hardcoded endpoint strings.
