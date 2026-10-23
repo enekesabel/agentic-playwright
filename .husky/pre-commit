@@ -23,9 +23,9 @@ if git diff --cached --name-only --diff-filter=ACMRD \
     npm run --silent check:skills-references
 fi
 
-# Gate self-tests: when a gate script or its fixtures are staged.
+# Gate self-tests: when a gate script, the write-time hook, or the fixtures are staged.
 if git diff --cached --name-only --diff-filter=ACMRD \
-    | grep -qE '^scripts/(check-[^/]+\.sh$|tests/)'; then
+    | grep -qE '^(scripts/(check-[^/]+\.sh$|tests/)|\.claude/scripts/enforce_constitution\.py$)'; then
     npm run --silent check:gates-selftest
 fi
 

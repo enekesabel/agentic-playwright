@@ -61,6 +61,9 @@ jobs:
             - name: Gate self-tests against fixture trees
               run: bash scripts/tests/run.sh
 
+            - name: Write-time hook self-test
+              run: bash scripts/tests/enforce-constitution.test.sh
+
     version-lint:
         runs-on: ubuntu-latest
         steps:
