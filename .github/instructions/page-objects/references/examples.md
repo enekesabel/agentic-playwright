@@ -1,6 +1,6 @@
 # Page Object Examples
 
-Three end-to-end walkthroughs aligned with the 8-phase `ai-native-workflow`. Each example uses the in-skill phase numbering (Phase 1-6 in `page-objects/SKILL.md`); for the global flow see `ai-native-workflow/SKILL.md`.
+Three end-to-end walkthroughs aligned with the 8-phase `ai-native-workflow`. Each example uses the in-skill phase numbering (Phase 1-6 in [`page-objects/SKILL.md`](../../page-objects.instructions.md)); for the global flow see [`ai-native-workflow/SKILL.md`](../../ai-native-workflow.instructions.md).
 
 ## Example 1: Add a brand-new page end-to-end
 

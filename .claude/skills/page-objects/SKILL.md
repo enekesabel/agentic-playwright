@@ -8,18 +8,13 @@ author: Ivan Davidov
 
 ## Critical
 
-- **Locators are `get` accessors** returning `Locator`. This is a style/readability convention — Playwright's `Locator` is lazy either way (it only queries the DOM when an action runs), so `get` vs `readonly` field behave identically at runtime. Use `get` for consistency with the rest of the scaffold.
-- **Constructor uses `private readonly page: Page`.** No other visibility modifiers, no alternative DI patterns.
-- **Page objects import `expect, Locator, Page` from `@playwright/test`** — never from `fixtures/pom/test-options.ts` (that's for spec files and fixtures).
-- **JSDoc rules:**
-    - **Forbidden** on locator getters and on any method that returns a `Locator`. Names are self-documenting.
-    - **Required** (with `@param` and `@returns`) on every action method and every verification method.
-    - **Allowed** on component fields (e.g. `readonly nav: NavigationComponent`) — these are not locators.
-- **Three locator sections** when the page has forms or CRUD: interactive-element locators, feedback/validation-message locators, action methods. Feedback locators are not optional — see the `selectors` skill.
-- **Feedback/message strings come from `enums/{area}/*`** (e.g. `Messages.LOGIN_ERROR`). Never hardcoded strings inside `getByText(...)`.
-- **NEVER** `page.waitForTimeout(...)` inside a page object. Use web-first assertions (`await expect(locator).toBeVisible()`) or `page.waitForResponse(...)`.
-- **Exploration with `playwright-cli` is mandatory** before writing any locators (see the `selectors` skill's Exploration-First Workflow). No guessing from wireframes, docs, or screenshots. If the app is unavailable, stop and say so — never ship placeholder locators.
-- **Register every new page object** as a fixture in `fixtures/pom/page-object-fixture.ts`. Tests consume page objects through the fixture, never via `new PageObject(page)`.
+- <a id="rule-locators-as-getters"></a>**Locators are `get` accessors** returning `Locator`. This is a style/readability convention — Playwright's `Locator` is lazy either way (it only queries the DOM when an action runs), so `get` vs `readonly` field behave identically at runtime. Use `get` for consistency with the rest of the scaffold.
+- <a id="rule-pom-constructor-private-readonly-page"></a>**Constructor uses `private readonly page: Page`.** No other visibility modifiers, no alternative DI patterns.
+- <a id="rule-pom-imports-from-playwright-test"></a>**Page objects import `expect, Locator, Page` from `@playwright/test`** — never from `fixtures/pom/test-options.ts` (that's for spec files and fixtures).
+- <a id="rule-register-page-object-fixture"></a>**Register every new page object** as a fixture in `fixtures/pom/page-object-fixture.ts`. Tests consume page objects through the fixture, never via `new PageObject(page)` ([No Manual Instantiation](../../../CLAUDE.md#rule-no-manual-instantiation)).
+- **Three locator sections** when the page has forms or CRUD: interactive-element locators, feedback/validation-message locators, action methods.
+- **Verification methods** carry JSDoc with `@param` and `@returns`, like action methods. **Component fields** (e.g. `readonly nav: NavigationComponent`) may carry JSDoc: they are not locators.
+- Constitution rules that apply here: [Selectors](../../../CLAUDE.md#rule-selectors), [JSDoc on Actions](../../../CLAUDE.md#rule-jsdoc-on-actions), [No JSDoc on Locators](../../../CLAUDE.md#rule-no-jsdoc-on-locators), [No Hard Waits](../../../CLAUDE.md#rule-no-hard-waits), [No Feedback-Less POM](../../../CLAUDE.md#rule-no-feedback-less-pom), [Sources of Truth](../../../CLAUDE.md#rule-sources-of-truth), [Enums for Strings](../../../CLAUDE.md#rule-enums-for-strings), [Explore Before Generate](../../../CLAUDE.md#rule-explore-before-generate), [No Substitute UI Exploration](../../../CLAUDE.md#rule-no-substitute-ui-exploration), [No Manual Instantiation](../../../CLAUDE.md#rule-no-manual-instantiation), [Dependency Injection](../../../CLAUDE.md#rule-dependency-injection).
 
 ## File Locations
 
@@ -80,7 +75,7 @@ export class ExamplePage {
 }
 ```
 
-Every page object that handles forms or CRUD operations must have three locator sections: interactive element locators, feedback/validation message locators, and action methods. Feedback locators are not optional — see the `selectors` skill for the full list of feedback types to capture.
+Every page object that handles forms or CRUD operations has the three locator sections from the Critical block. Feedback locators are not optional ([No Feedback-Less POM](../../../CLAUDE.md#rule-no-feedback-less-pom)); see the `selectors` skill for the full list of feedback types to capture.
 
 ## Rules
 
@@ -103,7 +98,7 @@ constructor(private readonly page: Page) {}
 
 ### No JSDoc on locators
 
-JSDoc is **forbidden** on locator getters and on any method that returns a `Locator`. The name documents what it is:
+[No JSDoc on Locators](../../../CLAUDE.md#rule-no-jsdoc-on-locators) applies to locator getters and to any method that returns a `Locator`. The name documents what it is:
 
 ```typescript
 // CORRECT -- no comment needed
@@ -118,16 +113,16 @@ get submitButton(): Locator {
 }
 ```
 
-JSDoc is **required** on action methods and verification methods (see below).
+[JSDoc on Actions](../../../CLAUDE.md#rule-jsdoc-on-actions) applies to action methods and verification methods (see below).
 
 ### Action methods and verification methods
 
 - **Action methods** represent complete user actions (`login()`, `submitForm()`, `addToCart()`).
 - **Verification methods** combine an action with a success assertion (`loginAndVerify()`). They may use `expect(...)` internally.
 - Plain action methods should not assert — the test asserts. Use a verification method when the success check is re-used across tests.
-- Always wait for API responses or state changes inside the method (`page.waitForResponse`, web-first assertions). Never `page.waitForTimeout(...)`.
+- Always wait for API responses or state changes inside the method (`page.waitForResponse`, web-first assertions); see [No Hard Waits](../../../CLAUDE.md#rule-no-hard-waits).
 - Always specify an explicit return type (`Promise<void>` is the common case).
-- JSDoc with `@param` and `@returns` is required; an `@example` block is encouraged for non-trivial methods.
+- JSDoc with `@param` and `@returns` ([JSDoc on Actions](../../../CLAUDE.md#rule-jsdoc-on-actions)); an `@example` block is encouraged for non-trivial methods.
 
 ### Imports in page objects
 
@@ -200,13 +195,13 @@ Before writing any code:
 
 Never create a page object from assumptions, wireframes, or documentation alone.
 
-1. **Open and authenticate** — use **only** `playwright-cli` in the terminal (not IDE browser MCP, not Cursor browser tools, not any substitute). Orchestrator rule: **No Substitute UI Exploration**. If the page doesn't load or auth fails, stop and notify the human.
+1. **Open and authenticate** — use **only** `playwright-cli` in the terminal (not IDE browser MCP, not Cursor browser tools, not any substitute). Constitution rule: [No Substitute UI Exploration](../../../CLAUDE.md#rule-no-substitute-ui-exploration). If the page doesn't load or auth fails, stop and notify the human.
 2. **Explore like a user** — navigate through the feature, trigger CRUD operations, observe forms, buttons, feedback messages, validation errors, and dynamic content.
 3. Record every observed element's role, accessible name, label, and (if applicable) test ID.
 
-Read the full workflow in the `selectors` skill (`.claude/skills/selectors/SKILL.md` → "Exploration-First Workflow") and `playwright-cli` skill for the specific commands.
+Read the full workflow in the `selectors` skill ([`.claude/skills/selectors/SKILL.md`](../selectors/SKILL.md) → "Exploration-First Workflow") and `playwright-cli` skill for the specific commands.
 
-**Forbidden:** Skipping exploration. If the application is unavailable, say so and wait — do not create placeholder locators with guessed names.
+Skipping exploration is forbidden ([Explore Before Generate](../../../CLAUDE.md#rule-explore-before-generate)). If the application is unavailable, say so and wait — do not create placeholder locators with guessed names.
 
 ### Phase 3: Plan the page object's test coverage
 
@@ -225,8 +220,8 @@ Follow the Page Object Pattern above. Specifically:
 
 - Import `expect, Locator, Page` from `@playwright/test`.
 - Constructor: `private readonly page: Page` — plus component instantiation if composing.
-- Three locator sections (Interactive / Feedback / Actions), each separated by a visual header comment. Feedback locators reference `enums/{area}/*` values, never hardcoded strings.
-- Every action method: explicit return type, `@param` / `@returns` JSDoc, waits for API responses or state changes (web-first assertions or `waitForResponse`), no `waitForTimeout`.
+- Three locator sections (Interactive / Feedback / Actions), each separated by a visual header comment. Feedback locators reference `enums/{area}/*` values ([Sources of Truth](../../../CLAUDE.md#rule-sources-of-truth)).
+- Every action method: explicit return type, `@param` / `@returns` JSDoc, waits for API responses or state changes (web-first assertions or `waitForResponse`; [No Hard Waits](../../../CLAUDE.md#rule-no-hard-waits)).
 - Verification method naming: `xxxAndVerify()` — may use `expect(...)` internally.
 - Reusable fragments → component under `pages/components/` and composed via a `readonly field: ComponentClass` in the page object (see Component composition above).
 
@@ -285,7 +280,7 @@ test(
 );
 ```
 
-**Never** `new AppPage(page)` inside a test. If the fixture feels too heavy, fix the fixture, don't bypass it.
+[No Manual Instantiation](../../../CLAUDE.md#rule-no-manual-instantiation): never `new AppPage(page)` inside a test. If the fixture feels too heavy, fix the fixture, don't bypass it.
 
 ## See Also
 
@@ -296,5 +291,5 @@ test(
 - **`common-tasks`** skill — prompt templates for "Add a New Page Object (With / Without Exploration)" and "Add Locators to Existing Page".
 - **`api-testing`** skill — helper fixtures and factories used from page-object tests.
 - **`debugging`** skill — when a test using this page object fails, classify the failure (TimeoutError on action, locator returned multiple, etc.) and use the right tool to investigate before changing the page object.
-- **`references/examples.md`** — three end-to-end walkthroughs (new page, locator addition, component extraction).
-- **`references/troubleshooting.md`** — common page-object pitfalls and their fixes.
+- **[`references/examples.md`](references/examples.md)** — three end-to-end walkthroughs (new page, locator addition, component extraction).
+- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common page-object pitfalls and their fixes.

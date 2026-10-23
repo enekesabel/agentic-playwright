@@ -17,17 +17,17 @@
 
 ## I'm tempted to `page.waitForTimeout(1000)` inside an action method
 
-**Fix:** Forbidden. Replace with `page.waitForResponse(...)` when waiting for an API call, or with a web-first assertion (`await expect(locator).toBeVisible()`) when waiting for UI state. If neither fits, the page is under-specified — re-explore to find the right signal.
+**Fix:** [No Hard Waits](../../../rules/rules.mdc#rule-no-hard-waits) forbids it. Replace with `page.waitForResponse(...)` when waiting for an API call, or with a web-first assertion (`await expect(locator).toBeVisible()`) when waiting for UI state. If neither fits, the page is under-specified — re-explore to find the right signal.
 
 ## The `Messages.X` enum member I want to use doesn't exist
 
 **Cause:** The UI text hasn't been encoded yet.
-**Fix:** Stop and extend the enum via the `enums` skill — capture the exact text from the live app with `playwright-cli` first. Never hardcode the string in `getByText('...')` as a workaround.
+**Fix:** Stop and extend the enum via the `enums` skill — capture the exact text from the live app with `playwright-cli` first. Hardcoding the string in `getByText('...')` as a workaround breaks [Sources of Truth](../../../rules/rules.mdc#rule-sources-of-truth).
 
 ## I copy-pasted a locator from DOM inspector and it uses XPath or a brittle CSS chain
 
-**Cause:** Wrong locator strategy.
-**Fix:** Replace with `getByRole` > `getByLabel` > `getByPlaceholder` > `getByText` > `getByTestId` per the `selectors` skill's priority order. If nothing semantic works, coordinate with engineering to add a `data-testid`.
+**Cause:** Wrong locator strategy ([No XPath](../../../rules/rules.mdc#rule-no-xpath)).
+**Fix:** Replace it following [Selectors](../../../rules/rules.mdc#rule-selectors) (priority order in the `selectors` skill). If nothing semantic works, coordinate with engineering to add a `data-testid`.
 
 ## My page object file is 600+ lines and hard to maintain
 
