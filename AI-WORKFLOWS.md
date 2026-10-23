@@ -334,7 +334,7 @@ The rules most often skipped under time pressure — and the one that catches ea
 | `npm run report`                                                         | Open the HTML report / Trace Viewer.    |
 | `ENVIRONMENT=ci CI=1 npx playwright test <file> --workers=1 --retries=0` | Replay CI conditions locally.           |
 | `npm run lint` / `lint:fix` / `format`                                   | ESLint / autofix / Prettier.            |
-| `npm run check:skills-drift` / `check:skills-references`                 | Validate AI-rules integrity.            |
+| `npm run check:skills`                                                   | Validate AI-rules integrity.            |
 
 ---
 

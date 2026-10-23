@@ -59,6 +59,5 @@ jobs:
                   cd /tmp/smoke
                   node package/bin/create.js pruned-project --demo --no-cursor --no-copilot --skip-install --skip-git
                   cd pruned-project
-                  bash scripts/check-rules-drift.sh
                   bash scripts/check-skill-references-drift.sh
                   bash scripts/check-skill-crossrefs.sh

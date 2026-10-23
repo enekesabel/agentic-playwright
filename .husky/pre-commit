@@ -1,11 +1,16 @@
 npx lint-staged
 
-# Skill-rules + skill-references drift gates run only when files in any of the
-# three rule trees are staged, so they don't slow unrelated commits.
-if git diff --cached --name-only --diff-filter=ACMR \
-    | grep -qE '^(\.claude/skills/|\.cursor/skills/|\.github/instructions/|\.github/skills/)'; then
-    npm run --silent check:skills-drift
+# Link check: when any file it covers is staged (rule trees, root docs,
+# ESLint config, gate scripts). Deletions count: they can leave links dangling.
+if git diff --cached --name-only --diff-filter=ACMRD \
+    | grep -qE '^(\.claude/|\.cursor/|\.github/|(CLAUDE|README|AI-WORKFLOWS|CONTRIBUTING)\.md$|eslint\.config\.mts$|scripts/[^/]+\.sh$)'; then
     npm run --silent check:skills-references
+fi
+
+# Gate self-tests: when a gate script or its fixtures are staged.
+if git diff --cached --name-only --diff-filter=ACMRD \
+    | grep -qE '^scripts/(check-[^/]+\.sh$|tests/)'; then
+    npm run --silent check:gates-selftest
 fi
 
 # Version-drift gate: only when a version surface is staged.

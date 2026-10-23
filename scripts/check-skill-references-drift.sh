@@ -1,154 +1,239 @@
 #!/usr/bin/env bash
-# check-skill-references-drift.sh
+# check-skill-references-drift.sh [root-dir]
 #
-# Lints structural drift between each skill / instruction file and its
-# `references/` siblings. Catches three failure modes:
-#   1. Broken pointer  -- file links to references/foo.md but the file is missing.
-#   2. Orphan reference -- references/foo.md exists but no link references it.
-#   3. Broken anchor   -- "references/foo.md#bar" with no matching "## bar" heading.
+# Link check over the rule trees, the root docs and the gate scripts. Kept
+# under its historical name (it started as the SKILL.md -> references/ drift
+# lint) because docs and the npm script `check:skills-references` point at it.
 #
-# Walks all three rule trees so mirror divergence is caught alongside the
-# canonical .claude/ tree (per the v2.1 self-contained-trees policy):
+# Files checked (tracked files when root-dir is a git work tree's top level,
+# otherwise every file found under it):
+#   .claude/**  .cursor/**  .github/**
+#   CLAUDE.md  README.md  AI-WORKFLOWS.md  CONTRIBUTING.md
+#   eslint.config.mts  scripts/*.sh
 #
-#   .claude/skills/<name>/SKILL.md                 -- folder form
-#   .cursor/skills/<name>/SKILL.md                 -- folder form
-#   .github/instructions/<name>.instructions.md    -- flat form (refs sibling at <name>/references/)
-#   .github/instructions/<name>/SKILL.md           -- folder form (playwright-cli)
-#   .github/skills/<name>/SKILL.md                 -- folder form (skill-creator)
+# Failure modes:
+#   1. Broken link      -- a relative Markdown link [text](path) in a .md/.mdc
+#                          file, or a bare <file>.md#<anchor> / .mdc#<anchor> token in any other
+#                          text file (a comment in a gate script, hook or
+#                          config), names a file that does not exist.
+#   2. Broken anchor    -- the #anchor matches neither a heading slug (GitHub
+#                          style, any level) nor an inline <a id="..."> /
+#                          <a name="..."> in the target file.
+#   3. Orphan reference -- a skill's references/*.md file is not mentioned by
+#                          the skill's entry file (README.md is exempt).
+#
+# Paths resolve relative to the containing file. Two shapes kept from the
+# original references lint, for skill entry files only:
+#   - a bare `references/...` token (usually in backticks) counts as a link,
+#     resolved against the skill directory;
+#   - in a flat Copilot file .github/instructions/<name>.instructions.md, a
+#     path starting with references/ resolves against the sibling <name>/
+#     folder, which is where that layout keeps its reference files.
+# Absolute URLs are skipped. Fenced code blocks and inline code spans are
+# ignored when extracting Markdown links and headings.
 #
 # Semantic drift (a rule contradicted by an example) needs an LLM and is out
-# of scope for this lint -- run periodically via the skill-creator agent.
+# of scope for this lint.
 #
-# Exits non-zero on any drift so CI can gate.
+# Exits non-zero on any drift so CI and the pre-commit hook can gate.
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd -P)"
 
-# Slugify a heading for GFM anchor matching: lowercase, drop most punctuation,
-# keep alphanumeric + hyphens, collapse spaces to hyphens.
-slugify() {
-    printf '%s' "$1" \
-        | tr '[:upper:]' '[:lower:]' \
-        | sed -E 's/[^a-z0-9 _-]//g; s/[ _]+/-/g; s/^-+//; s/-+$//'
+# Git hooks export GIT_DIR / GIT_INDEX_FILE, which would make any root
+# (a fixture tree, say) look like the top of the hook's repository. Let git
+# discover the repository from ROOT instead.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+
+SCOPE_RE='^(\.claude/|\.cursor/|\.github/|(CLAUDE|README|AI-WORKFLOWS|CONTRIBUTING)\.md$|eslint\.config\.mts$|scripts/[^/]+\.sh$)'
+
+# Relative paths (from ROOT) of every in-scope file.
+list_files() {
+    if [[ "$(git -C "${ROOT}" rev-parse --show-toplevel 2>/dev/null || true)" == "${ROOT}" ]]; then
+        git -C "${ROOT}" ls-files
+    else
+        (cd "${ROOT}" && find . \( -name .git -o -name node_modules -o -path ./.claude/worktrees \) -prune \
+            -o -type f -print | sed 's|^\./||')
+    fi | grep -E "${SCOPE_RE}" | grep -vE '^\.claude/worktrees/' | sort || true
 }
 
-# Collect every "## heading" in a markdown file as slugs (one per line).
+# "<line>\t<target>" for every Markdown link target outside code.
+extract_md_links() {
+    LC_ALL=C awk '
+        /^[ \t]*(```|~~~)/ { fence = !fence; next }
+        fence { next }
+        {
+            l = $0
+            gsub(/`[^`]*`/, "", l)
+            while (match(l, /\]\([^) \t]+/)) {
+                print NR "\t" substr(l, RSTART + 2, RLENGTH - 2)
+                l = substr(l, RSTART + RLENGTH)
+            }
+        }' "$1"
+}
+
+# "<line>\t<token>" for every bare <file>.md#<anchor> token (non-Markdown files).
+extract_bare_anchor_tokens() {
+    LC_ALL=C awk -v q="'" '
+        BEGIN { url = "[A-Za-z][A-Za-z0-9+.-]*://[^ \t\"" q "`)>]*" }
+        {
+            l = $0
+            gsub(url, "", l)
+            while (match(l, /[A-Za-z0-9._\/-]+\.mdc?#[A-Za-z0-9._-]+/)) {
+                print NR "\t" substr(l, RSTART, RLENGTH)
+                l = substr(l, RSTART + RLENGTH)
+            }
+        }' "$1"
+}
+
+# "<line>\t<token>" for every bare references/... token in a skill entry file,
+# outside Markdown link targets (those are covered by extract_md_links).
+extract_reference_tokens() {
+    sed -E 's/\]\([^)]*\)/]/g' "$1" \
+        | grep -noE '(^|[^/A-Za-z0-9._-])references/[A-Za-z0-9._/-]+(#[A-Za-z0-9._-]+)?' \
+        | sed -E 's/^([0-9]+):[^r]?/\1	/; s/\.+$//' || true
+}
+
+# Every anchor a Markdown file defines: GitHub heading slugs (duplicates get
+# -1, -2, ...) and inline <a id="..."> / <a name="..."> ids. Non-ASCII
+# characters are dropped from slugs; setext headings are not recognised.
 collect_anchors() {
-    local file="$1"
-    awk '/^## +/ { sub(/^## +/, ""); print }' "${file}" | while IFS= read -r heading; do
-        slugify "${heading}"
-    done
-}
-
-# Extract every references/<path>(#anchor)? token from a file. We deliberately
-# look only for the bare `references/...md` shape -- cross-tree pointers like
-# `../skills/.../references/foo.md` are intentionally excluded (each tree is
-# self-contained per the v2.1 policy, so any link that can't be resolved
-# locally should not look like a sibling-references link).
-extract_reference_links() {
-    local file="$1"
-    grep -oE '(^|[^/])references/[A-Za-z0-9._/-]+(#[A-Za-z0-9._-]+)?' "${file}" \
-        | sed -E 's/^[^r]//' || true
+    LC_ALL=C awk '
+        /^[ \t]*(```|~~~)/ { fence = !fence; next }
+        fence { next }
+        {
+            l = $0
+            while (match(l, /<a[ \t][^>]*(id|name)="[^"]*"/)) {
+                s = substr(l, RSTART, RLENGTH)
+                sub(/.*(id|name)="/, "", s)
+                sub(/"$/, "", s)
+                print s
+                l = substr(l, RSTART + RLENGTH)
+            }
+        }
+        /^#+[ \t]/ {
+            h = $0
+            match(h, /^#+/)
+            if (RLENGTH > 6) next
+            h = substr(h, RLENGTH + 1)
+            sub(/[ \t]+#+[ \t]*$/, "", h)
+            sub(/^[ \t]+/, "", h)
+            sub(/[ \t]+$/, "", h)
+            gsub(/<[^>]*>/, "", h)
+            gsub(/\]\([^)]*\)/, "]", h)
+            h = tolower(h)
+            gsub(/[^a-z0-9 _-]/, "", h)
+            gsub(/ /, "-", h)
+            if (h in seen) { print h "-" seen[h]; seen[h]++ } else { seen[h] = 1; print h }
+        }' "$1"
 }
 
 errors=0
-checked_skills=0
+checked_files=0
 checked_links=0
 
-# Run the three drift checks for one skill. Args:
-#   $1 = path to the SKILL.md / .instructions.md file
-#   $2 = directory whose `references/` sibling holds the linked .md files
-#   $3 = display name (e.g. ".claude :: api-testing")
-check_skill_file() {
-    local skill_md="$1"
-    local skill_dir="$2"
-    local display="$3"
-    local refs_dir="${skill_dir}/references"
+# Check one link. Args: source rel path, line, raw link, base dir (absolute)
+# against which the path part resolves.
+check_link() {
+    local src="$1" line="$2" raw="$3" base="$4"
+    local path="${raw%%#*}" anchor="" target
+    [[ "${raw}" == *"#"* ]] && anchor="${raw#*#}"
+    checked_links=$((checked_links + 1))
 
-    checked_skills=$((checked_skills + 1))
-
-    local mentioned_paths=""
-
-    while IFS= read -r link; do
-        [[ -z "${link}" ]] && continue
-        checked_links=$((checked_links + 1))
-
-        local path="${link%%#*}"
-        local anchor=""
-        if [[ "${link}" == *"#"* ]]; then
-            anchor="${link#*#}"
-        fi
-
-        local target="${skill_dir}/${path}"
-
-        if [[ ! -f "${target}" ]]; then
-            echo "DRIFT ${display} :: broken pointer -- file links to ${path} but file is missing"
+    if [[ -z "${path}" ]]; then
+        target="${ROOT}/${src}"
+    else
+        target="${base}/${path}"
+        if [[ ! -e "${target}" ]]; then
+            echo "DRIFT ${src}:${line} :: broken link -- ${raw} (file not found)"
             errors=$((errors + 1))
-            continue
+            return 0
         fi
+    fi
 
-        mentioned_paths="${mentioned_paths}
-${path}"
-
-        if [[ -n "${anchor}" ]]; then
-            local target_anchors
-            target_anchors="$(collect_anchors "${target}")"
-            if ! printf '%s\n' "${target_anchors}" | grep -F -x -q -- "${anchor}"; then
-                echo "DRIFT ${display} :: broken anchor -- ${path}#${anchor} (no matching ## heading)"
-                errors=$((errors + 1))
-            fi
-        fi
-    done < <(extract_reference_links "${skill_md}")
-
-    # Orphan check: every references/*.md file should be linked from the SKILL.md.
-    # README.md inside references/ is exempt -- directory-level index.
-    [[ -d "${refs_dir}" ]] || return 0
-
-    while IFS= read -r ref_file; do
-        local nested_rel="${ref_file#${skill_dir}/}"
-        local base
-        base="$(basename "${ref_file}")"
-        if [[ "${base}" == "README.md" ]]; then
-            continue
-        fi
-        if ! printf '%s' "${mentioned_paths}" | grep -F -x -q -- "${nested_rel}"; then
-            echo "DRIFT ${display} :: orphan reference -- ${nested_rel} exists but file does not link to it"
-            errors=$((errors + 1))
-        fi
-    done < <(find "${refs_dir}" -type f -name '*.md')
+    [[ -n "${anchor}" && -f "${target}" ]] || return 0
+    case "${target}" in *.md | *.mdc) ;; *) return 0 ;; esac
+    if ! collect_anchors "${target}" | grep -F -x -q -- "${anchor}"; then
+        echo "DRIFT ${src}:${line} :: broken anchor -- ${raw} (no heading or <a id> matches #${anchor})"
+        errors=$((errors + 1))
+    fi
 }
 
-# --- Folder-form skills: <root>/<name>/SKILL.md ---
-for root in "${REPO_ROOT}/.claude/skills" "${REPO_ROOT}/.cursor/skills" "${REPO_ROOT}/.github/skills"; do
-    [[ -d "$root" ]] || continue
-    tree_label="$(echo "$root" | sed -E "s|${REPO_ROOT}/||")"
-    while IFS= read -r skill_md; do
-        skill_dir="$(dirname "${skill_md}")"
-        skill_name="$(basename "${skill_dir}")"
-        check_skill_file "${skill_md}" "${skill_dir}" "${tree_label} :: ${skill_name}"
-    done < <(find "$root" -mindepth 2 -maxdepth 2 -name SKILL.md -type f 2>/dev/null)
-done
+# Skill directory for a skill entry file, or empty if the file is not one.
+skill_dir_of() {
+    case "$1" in
+        .claude/skills/*/SKILL.md | .cursor/skills/*/SKILL.md | .github/skills/*/SKILL.md | .github/instructions/*/SKILL.md)
+            [[ "$1" == */*/*/*/* ]] && { echo ""; return; }
+            dirname "$1" ;;
+        .github/instructions/*.instructions.md)
+            [[ "$1" == */*/*/* ]] && { echo ""; return; }
+            echo ".github/instructions/$(basename "$1" .instructions.md)" ;;
+        *) echo "" ;;
+    esac
+}
 
-# --- Copilot mirror: mixed shape ---
-copilot_root="${REPO_ROOT}/.github/instructions"
-if [[ -d "$copilot_root" ]]; then
-    # Folder-form (e.g. playwright-cli has a folder with references/)
-    while IFS= read -r skill_md; do
-        skill_dir="$(dirname "${skill_md}")"
-        skill_name="$(basename "${skill_dir}")"
-        check_skill_file "${skill_md}" "${skill_dir}" ".github/instructions :: ${skill_name} (folder)"
-    done < <(find "$copilot_root" -mindepth 2 -maxdepth 2 -name SKILL.md -type f 2>/dev/null)
+entry_files=""
 
-    # Flat-form: <name>.instructions.md with optional sibling <name>/references/ folder
-    while IFS= read -r skill_md; do
-        flat_name="$(basename "${skill_md}" .instructions.md)"
-        # references/ sibling lives at .github/instructions/<name>/, if any
-        skill_dir="${copilot_root}/${flat_name}"
-        check_skill_file "${skill_md}" "${skill_dir}" ".github/instructions :: ${flat_name} (flat)"
-    done < <(find "$copilot_root" -mindepth 1 -maxdepth 1 -name '*.instructions.md' -type f 2>/dev/null)
-fi
+while IFS= read -r rel; do
+    [[ -z "${rel}" ]] && continue
+    file="${ROOT}/${rel}"
+    [[ -f "${file}" ]] || continue
+    grep -Iq . "${file}" || continue
+    checked_files=$((checked_files + 1))
+    dir="$(dirname "${file}")"
+    skill_dir="$(skill_dir_of "${rel}")"
+    [[ -n "${skill_dir}" ]] && entry_files="${entry_files}${rel}"$'\n'
+
+    case "${rel}" in
+        *.md | *.mdc)
+            while IFS=$'\t' read -r line raw; do
+                [[ -z "${raw}" ]] && continue
+                raw="${raw#<}"
+                raw="${raw%>}"
+                [[ "${raw}" =~ ^[A-Za-z][A-Za-z0-9+.-]*: || "${raw}" == //* ]] && continue
+                base="${dir}"
+                if [[ -n "${skill_dir}" && "${rel}" == *.instructions.md && "${raw}" == references/* ]]; then
+                    base="${ROOT}/${skill_dir}"
+                fi
+                check_link "${rel}" "${line}" "${raw}" "${base}"
+            done < <(extract_md_links "${file}")
+
+            if [[ -n "${skill_dir}" ]]; then
+                while IFS=$'\t' read -r line raw; do
+                    [[ -z "${raw}" ]] && continue
+                    check_link "${rel}" "${line}" "${raw}" "${ROOT}/${skill_dir}"
+                done < <(extract_reference_tokens "${file}")
+            fi
+            ;;
+        *)
+            while IFS=$'\t' read -r line raw; do
+                [[ -z "${raw}" ]] && continue
+                check_link "${rel}" "${line}" "${raw}" "${dir}"
+            done < <(extract_bare_anchor_tokens "${file}")
+            ;;
+    esac
+done < <(list_files)
+
+# Orphan check: every references/**/*.md in a skill directory must be
+# mentioned (Markdown link or bare token) by the skill's entry file.
+while IFS= read -r rel; do
+    [[ -z "${rel}" ]] && continue
+    skill_dir="$(skill_dir_of "${rel}")"
+    refs_dir="${ROOT}/${skill_dir}/references"
+    [[ -d "${refs_dir}" ]] || continue
+    mentioned="$( { extract_md_links "${ROOT}/${rel}"; extract_reference_tokens "${ROOT}/${rel}"; } \
+        | cut -f2 | sed -E 's/#.*//; s|^\./||')"
+    while IFS= read -r ref_file; do
+        nested="${ref_file#"${ROOT}/${skill_dir}/"}"
+        [[ "$(basename "${ref_file}")" == "README.md" ]] && continue
+        if ! printf '%s\n' "${mentioned}" | grep -F -x -q -- "${nested}"; then
+            echo "DRIFT ${rel} :: orphan reference -- ${skill_dir}/${nested} exists but ${rel} does not link to it"
+            errors=$((errors + 1))
+        fi
+    done < <(find "${refs_dir}" -type f -name '*.md' | sort)
+done <<< "${entry_files}"
 
 echo
-echo "Checked ${checked_skills} skill(s) and ${checked_links} reference link(s); ${errors} drift(s)."
+echo "Checked ${checked_files} file(s) and ${checked_links} link(s); ${errors} drift(s)."
 [[ "${errors}" -eq 0 ]] || exit 1

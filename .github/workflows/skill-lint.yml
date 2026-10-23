@@ -1,7 +1,8 @@
 # Gates the orchestration layer: every PR (and push to main) touching the
-# rule trees, the Constitution, the linters, or a version surface must pass
-# the skill drift checks and the version-drift check. Pure bash + git -- no
-# Node install needed.
+# rule trees, the root docs, the ESLint config, the gate scripts or a version
+# surface must pass the link check, the Skills Index and frontmatter check,
+# the gate self-tests and the version-drift check. Pure bash + git -- no Node
+# install needed.
 name: Skill Lint
 
 on:
@@ -9,24 +10,30 @@ on:
         branches: [main]
         paths:
             - 'CLAUDE.md'
+            - 'README.md'
+            - 'AI-WORKFLOWS.md'
+            - 'CONTRIBUTING.md'
+            - 'eslint.config.mts'
             - '.claude/**'
             - '.cursor/**'
-            - '.github/instructions/**'
-            - '.github/skills/**'
-            - '.github/workflows/skill-lint.yml'
-            - 'scripts/check-*.sh'
+            - '.github/**'
+            - 'scripts/*.sh'
+            - 'scripts/tests/**'
             - 'VERSION'
             - 'package.json'
             - 'CHANGELOG.md'
     pull_request:
         paths:
             - 'CLAUDE.md'
+            - 'README.md'
+            - 'AI-WORKFLOWS.md'
+            - 'CONTRIBUTING.md'
+            - 'eslint.config.mts'
             - '.claude/**'
             - '.cursor/**'
-            - '.github/instructions/**'
-            - '.github/skills/**'
-            - '.github/workflows/skill-lint.yml'
-            - 'scripts/check-*.sh'
+            - '.github/**'
+            - 'scripts/*.sh'
+            - 'scripts/tests/**'
             - 'VERSION'
             - 'package.json'
             - 'CHANGELOG.md'
@@ -37,14 +44,14 @@ jobs:
         steps:
             - uses: actions/checkout@v7
 
-            - name: Constitution rules -> skill Critical blocks
-              run: bash scripts/check-rules-drift.sh
-
-            - name: SKILL.md -> references/ pointers, orphans, anchors
+            - name: Links and anchors across rule trees, root docs and gates; orphan references
               run: bash scripts/check-skill-references-drift.sh
 
-            - name: Skills Index sync, frontmatter, cross-skill refs
+            - name: Skills Index sync, frontmatter
               run: bash scripts/check-skill-crossrefs.sh
+
+            - name: Gate self-tests against fixture trees
+              run: bash scripts/tests/run.sh
 
     version-lint:
         runs-on: ubuntu-latest

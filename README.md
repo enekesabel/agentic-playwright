@@ -118,7 +118,7 @@ _Not affiliated with Microsoft. [Playwright](https://playwright.dev/) is an open
 - [Coding Standards](#coding-standards)
 - [Core Principles (The Constitution)](#core-principles-the-constitution)
 - [AI-Assisted Development Workflow](#ai-assisted-development-workflow)
-- [AI Rules Architecture](#ai-rules-architecture)
+- [AI Skills Architecture](#ai-skills-architecture)
 - [Architecture Overview](#architecture-overview)
 - [Troubleshooting](#troubleshooting)
 - [Agentic Playwright Pro](#agentic-playwright-pro)
@@ -142,7 +142,7 @@ _Not affiliated with Microsoft. [Playwright](https://playwright.dev/) is an open
 - **Confidence-Gated Workflow** -- The `ai-native-workflow` skill is the sole entry-point router for non-trivial work. Every plan must include `Confidence: <1-10>`, `Rationale`, and `Unknowns`; below confidence 5 the agent is required to stop and ask the user for the missing primary input rather than emit a plan built on guesses.
 - **Constitution Enforcement Hook** -- `.claude/scripts/enforce_constitution.py` is wired as a Claude Code `PreToolUse` hook in `.claude/settings.json`. It blocks any `Write`/`Edit`/`MultiEdit` that would introduce a mechanically-detectable WON'T violation (`waitForTimeout`, `z.object` in schemas, XPath, `@playwright/test` imports in specs, `.json` static data, the `@functional` tag, tags on `test.describe()`) before the file is ever written -- a hard backstop beneath the prompt-level rules.
 - **Version Single-Source** -- the root `VERSION` file is the one source of truth for the product version. `npm run version:stamp` writes it into `package.json`; `npm run check:version` asserts `VERSION` == `package.json` == the latest `CHANGELOG.md` heading and fails on drift. Gated in `.husky/pre-commit` (when a version surface is staged) and in CI (`skill-lint.yml`).
-- **Pre-Commit Drift Lints** -- `npm run check:skills-drift` keeps Constitution rules anchored in their owning skill's Critical block; `npm run check:skills-references` walks all three rule trees (`.claude/skills/`, `.cursor/skills/`, `.github/instructions/`, `.github/skills/`) and catches broken pointers, orphan references, and broken section anchors between each `SKILL.md` and its `references/` siblings. Both fire from `.husky/pre-commit` whenever any of those trees has files staged.
+- **Pre-Commit Link Check** -- `npm run check:skills-references` walks all three rule trees (`.claude/skills/`, `.cursor/skills/`, `.github/instructions/`, `.github/skills/`) and catches broken pointers, orphan references, and broken section anchors between each `SKILL.md` and its `references/` siblings. It fires from `.husky/pre-commit` whenever any of those trees has files staged.
 - **Upstream Skill Sync** -- `skills-lock.json` records the SHA-256 of the locally vendored copies of `skill-creator` (from `anthropics/skills`) and `playwright-cli` (from `@playwright/cli`). `npm run skills:verify` re-hashes the local files and exits non-zero on drift; `npm run skills:reinstall` fetches upstream, overwrites `.claude/skills/<name>/SKILL.md` and `.cursor/skills/<name>/SKILL.md`, and refreshes the lock; `npm run skills:update` re-locks after intentional local edits.
 - **Playwright CLI Exploration** -- `playwright-cli` is the default browser exploration path for UI discovery, tracing, storage inspection, and flow capture
 - **Out-of-the-Box Anthropic Skills** -- `playwright-cli` and `skill-creator` are reinstalled fresh from the upstream Anthropic packages and tracked via `skills-lock.json` for reproducible installs
@@ -466,9 +466,8 @@ root/
 │   └── cli.config.json        # playwright-cli browser defaults (Chromium channel)
 │
 ├── scripts/
-│   ├── check-rules-drift.sh         # Constitution rules <-> skill Critical-block anchors
 │   ├── check-skill-references-drift.sh  # SKILL.md <-> references/ pointers, orphans, anchors
-│   ├── check-skill-crossrefs.sh    # Skills Index sync, frontmatter, cross-skill refs
+│   ├── check-skill-crossrefs.sh    # Skills Index sync, frontmatter
 │   ├── check-version-drift.sh      # VERSION <-> package.json <-> CHANGELOG consistency
 │   ├── stamp-version.sh            # Stamp VERSION into package.json (single-source)
 │   ├── install-playwright-cli-browsers.sh
@@ -1243,7 +1242,7 @@ Husky automatically runs on staged files before each commit:
 
 - ESLint with auto-fix
 - Prettier formatting
-- Skill drift lints (`check:skills-drift`, `check:skills-references`) -- only when a rule tree is staged
+- Skill link check (`check:skills-references`) -- only when a rule tree is staged
 - Version drift lint (`check:version`) -- only when `VERSION`, `package.json`, or `CHANGELOG.md` is staged
 
 ### Constitution Enforcement Hook
@@ -1487,7 +1486,7 @@ This project uses a **modular orchestrator + skills pattern** for AI-assisted de
     - `.github/instructions/*.instructions.md` -- Copilot instructions (auto-injected when editing files matching the `applyTo` glob pattern)
 - **Common tasks** (`.claude/skills/common-tasks/SKILL.md`) -- Prompt templates, anti-patterns checklist, and verification checklist for code generation.
 
-> **Self-contained trees.** Each tool's rule tree (`.claude/`, `.cursor/`, `.github/instructions/`) stands alone — no cross-tree references in user-facing prose. When you edit a rule, edit it in all three trees in the same PR; the `npm run check:skills-drift` and `npm run check:skills-references` lints gate `.claude/skills/` only, so per-tree mirror parity is a hand-maintained discipline.
+> **Self-contained trees.** Each tool's rule tree (`.claude/`, `.cursor/`, `.github/instructions/`) stands alone — no cross-tree references in user-facing prose. When you edit a rule, edit it in all three trees in the same PR; the `npm run check:skills-references` and `npm run check:skills-crossrefs` lints do not compare the trees, so per-tree mirror parity is a hand-maintained discipline.
 
 ### Tool Comparison
 
