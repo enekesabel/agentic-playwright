@@ -7,12 +7,12 @@
 
 ## I'm about to write an XPath because nothing semantic works
 
-**Fix:** Forbidden. Re-snapshot with `playwright-cli` — often there IS a role or label hidden inside a custom component. If truly nothing semantic exists, coordinate with engineering to add a `data-testid` and use `getByTestId('...')`.
+**Fix:** [No XPath](../../../../CLAUDE.md#rule-no-xpath) forbids it. Re-snapshot with `playwright-cli` — often there IS a role or label hidden inside a custom component. If truly nothing semantic exists, coordinate with engineering to add a `data-testid` and use `getByTestId('...')`.
 
 ## I used `page.locator('.btn-primary')` because the button has no accessible name
 
 **Cause:** The markup lacks an accessible name (`<button><svg/></button>` is a common culprit).
-**Fix:** First, re-check the snapshot — ARIA `aria-label` or a visible icon label may give you a semantic hook. If not, add `data-testid` in collaboration with engineering; use `getByTestId(...)` until then. Class-based locators are brittle and must not ship.
+**Fix:** First, re-check the snapshot — ARIA `aria-label` or a visible icon label may give you a semantic hook. If not, add `data-testid` in collaboration with engineering; use `getByTestId(...)` until then. Class-based locators are brittle and must not ship ([No CSS or ID primary selectors](../SKILL.md#rule-no-css-id-primary-selectors)).
 
 ## My page object has form inputs and a submit button but no error / success locators
 
@@ -21,7 +21,7 @@
 
 ## I want to grep the DOM from dev tools and copy a CSS chain
 
-**Fix:** Forbidden as the default. Re-explore with `playwright-cli` and pick the semantic strategy from the Priority Order. The dev-tools CSS chain is almost always brittle (generated class names, index-based selectors).
+**Fix:** Not as the default ([No CSS or ID primary selectors](../SKILL.md#rule-no-css-id-primary-selectors)). Re-explore with `playwright-cli` and pick the semantic strategy from the Priority Order. The dev-tools CSS chain is almost always brittle (generated class names, index-based selectors).
 
 ## My locator returns "stale" elements after navigation
 
