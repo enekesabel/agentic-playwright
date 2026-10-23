@@ -27,3 +27,6 @@ packages/create-agentic-playwright/template/
 
 #FUNDING.yml
 .github/FUNDING.yml
+
+# Claude Code default worktree location (nested checkouts)
+.claude/worktrees/
