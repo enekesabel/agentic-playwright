@@ -7,7 +7,7 @@
 
 ## Test uses `{ tag: ['@smoke', '@destructive'] }` or any other array
 
-**Cause:** Combining tags is forbidden.
+**Cause:** Violates [No Multiple Tags](../../../rules/rules.mdc#rule-no-multiple-tags).
 **Fix:** Collapse to a single tag. If the test mutates shared state, tag it **only** `@destructive` — that's the heaviest tag and always wins.
 
 ## Test imports `test` from `@playwright/test`
@@ -18,7 +18,7 @@
 ## Test uses `page.waitForTimeout(1000)`
 
 **Cause:** Hard wait masks a timing issue.
-**Fix:** Replace with `await expect(locator).toBeVisible()` (or another web-first matcher). If waiting for an API call, move the wait into the page-object action method as `page.waitForResponse(...)`.
+**Fix:** Replace with `await expect(locator).toBeVisible()` (or another web-first matcher). If waiting for an API call, move the wait into the page-object action method ([rule](../SKILL.md#rule-waitforresponse-in-page-object-not-spec)).
 
 ## Test imports static data from a `.json` file
 

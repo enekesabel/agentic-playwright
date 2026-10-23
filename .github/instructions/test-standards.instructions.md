@@ -6,22 +6,11 @@ applyTo: 'tests/**/*.ts'
 
 ## Critical
 
-- **Imports:** Import `test` and `expect` from `fixtures/pom/test-options.ts`. **NEVER** from `@playwright/test` in spec files.
-- **Single-tag rule:** Each test has **exactly one** tag chosen from `@smoke` | `@sanity` | `@regression` | `@e2e` | `@api` | `@destructive`. **NEVER** combine tags. **NEVER** use `@functional`. **NEVER** put tags on `test.describe()` blocks.
-- **`@destructive` is the heaviest tag and always wins — but only for shared/global state.** A test that mutates state other tests or users depend on (locale, permissions, roles, guest access, feature flags, global settings) is tagged **only** `@destructive`. A test that creates and deletes **only its own data** is isolated, not destructive — tag it by importance (`@smoke` / `@sanity` / `@regression` / `@e2e` / `@api`).
-- **Every state-mutating test** must have `test.afterEach()` or `test.afterAll()` cleanup that reverts the change — both `@destructive` shared-state tests and isolated tests that write their own data.
-- **Web-first assertions only** (`await expect(locator).toBeVisible()`, `.toHaveText()`, `.toBeEnabled()`, `.toHaveCount(...)`, etc.). **NEVER** `page.waitForTimeout(...)`.
-- **Use `test.step()` for Given/When/Then structure** when a test has more than one distinct phase (setup, action, assertion).
-- **Tests must be independent.** No ordering dependencies, no shared mutable state across tests.
-- **NEVER** commit explore-only or debug test files (`.spec.ts` containing `console.log(await page.content())`, temporary probes, etc.).
-- **Static test data is imported from `.ts` modules** (`test-data/static/**/*.ts`) via named `as const` exports. **NEVER** `.json`.
-- **Dynamic happy-path data** comes from Faker factories (`test-data/factories/{area}/`); universal type-mismatch arrays from `test-data/static/util/invalid-values.ts`; domain-specific curated sets from `test-data/static/{area}/*.ts`. See the `data-strategy` skill.
-- **Page objects are consumed via the fixture** (`async ({ appPage }) => ...`). **NEVER** `new PageObject(page)` inside a test.
-- **After adding or modifying a test file, run the affected tests and confirm zero failures** before finishing the task.
+- **Constitution rules that apply here:** [Imports](../copilot-instructions.md#rule-imports), [Dependency Injection](../copilot-instructions.md#rule-dependency-injection), [No Manual Instantiation](../copilot-instructions.md#rule-no-manual-instantiation), [No Multiple Tags](../copilot-instructions.md#rule-no-multiple-tags), [No Tags on Describe](../copilot-instructions.md#rule-no-tags-on-describe), [State Cleanup](../copilot-instructions.md#rule-state-cleanup), [Assertions](../copilot-instructions.md#rule-assertions), [No Hard Waits](../copilot-instructions.md#rule-no-hard-waits), [Test Steps](../copilot-instructions.md#rule-test-steps), [Test Isolation](../copilot-instructions.md#rule-test-isolation), [No Explore-Only Files](../copilot-instructions.md#rule-no-explore-only-files), [No JSON Static Data](../copilot-instructions.md#rule-no-json-static-data), [Data Strategy](../copilot-instructions.md#rule-data-strategy), [Test Verification](../copilot-instructions.md#rule-test-verification).
 
 ## Test File Location and Type
 
-> **`{area}` is a placeholder.** Before creating or referencing any path below, run `ls tests/` to discover the real subdirectory names in this repo (e.g., `front-office`, `back-office`) and use those instead.
+> `{area}` is a placeholder; see [Area Placeholder](../copilot-instructions.md#rule-area-placeholder).
 
 | Test Type  | Directory                  | What it covers                                         |
 | ---------- | -------------------------- | ------------------------------------------------------ |
@@ -39,7 +28,7 @@ applyTo: 'tests/**/*.ts'
 
 ### Phase 1: Classify the test type and pick the location
 
-Determine whether the work is a **functional**, **E2E**, **API**, or **setup** test, then run `ls tests/` to resolve `{area}` and place the file in `tests/{area}/<type>/[name].spec.ts` (or `tests/{area}/[name].setup.ts` for setup). Never guess the area.
+Determine whether the work is a **functional**, **E2E**, **API**, or **setup** test, then resolve `{area}` per [Area Placeholder](../copilot-instructions.md#rule-area-placeholder) and place the file in `tests/{area}/<type>/[name].spec.ts` (or `tests/{area}/[name].setup.ts` for setup).
 
 ### Phase 2: Write the imports and file skeleton
 
@@ -63,13 +52,13 @@ test.describe('Feature Name', () => {
 });
 ```
 
-- Imports come from `fixtures/pom/test-options.ts`, **not** `@playwright/test`.
-- `test.describe(...)` groups related tests; the describe name has **no tag**.
+- Imports follow [Imports](../copilot-instructions.md#rule-imports).
+- `test.describe(...)` groups related tests; its name carries no tag.
 - `test.beforeEach(...)` handles navigation and per-test setup (see Phase 7 for destructive cleanup and Phase 6 for `resetStorageState`).
 
 ### Phase 3: Tag the test (single-tag rule)
 
-Each test gets **exactly one** tag. Pick the right one:
+Each test gets one tag ([No Multiple Tags](../copilot-instructions.md#rule-no-multiple-tags), [No Tags on Describe](../copilot-instructions.md#rule-no-tags-on-describe)). Pick the right one:
 
 | Tag            | Used for                                                                                                                                                                  |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -80,7 +69,7 @@ Each test gets **exactly one** tag. Pick the right one:
 | `@api`         | API contract and schema validation tests                                                                                                                                  |
 | `@destructive` | Mutates **shared/global** state (locale, permissions, roles, guest access, feature flags, global settings) — excluded from `npm test`, run via `npm run test:destructive` |
 
-**`@destructive` overrides any other importance tag — for shared/global state mutation only.** If a test would otherwise be `@smoke` but changes global settings, it is tagged **only** `@destructive`. A test that creates and cleans up **only its own data** is isolated, not destructive — keep its importance tag (`@smoke`/`@regression`/`@api`/…).
+Per [No Multiple Tags](../copilot-instructions.md#rule-no-multiple-tags), `@destructive` wins over any importance tag for shared/global state. For example, a test that would be `@smoke` but changes global settings carries only `@destructive`; one that creates and cleans up only its own data keeps its importance tag.
 
 ```typescript
 // CORRECT
@@ -148,11 +137,11 @@ test(
 );
 ```
 
-For API tests with multiple calls, `test.step` is **mandatory** — see the `api-testing` skill (Phase 4).
+For API tests with multiple calls, see [API Test Steps](../copilot-instructions.md#rule-api-test-steps).
 
 ### Phase 5: Use web-first assertions
 
-Web-first assertions auto-wait and retry until the condition is met or a timeout elapses. Never use hard waits.
+[Assertions](../copilot-instructions.md#rule-assertions) must be web-first: they auto-wait and retry until the condition is met or a timeout elapses, which is why [No Hard Waits](../copilot-instructions.md#rule-no-hard-waits) holds.
 
 ```typescript
 // CORRECT -- web-first assertions
@@ -165,7 +154,7 @@ await expect(locator).toHaveCount(3);
 await page.waitForTimeout(1000);
 ```
 
-If a response must be awaited, use `page.waitForResponse(...)` inside a page-object action method, not inside the spec.
+<a id="rule-waitforresponse-in-page-object-not-spec"></a>If a response must be awaited, use `page.waitForResponse(...)` inside a page-object action method, not inside the spec.
 
 ### Phase 6: Handle setup / teardown and storage state
 
@@ -184,7 +173,7 @@ For API-driven setup/teardown reused across many files, see the `api-testing` sk
 
 ### Phase 7: Handle destructive tests
 
-**`@destructive` is reserved for shared/global state.** A test is destructive only when it mutates state that lives **outside** the test and that other tests, users, or sessions depend on. Concretely:
+[No Multiple Tags](../copilot-instructions.md#rule-no-multiple-tags) reserves `@destructive` for shared/global state. A test is destructive only when it mutates state that lives **outside** the test and that other tests, users, or sessions depend on. Concretely:
 
 - changing the **locale** / language / region
 - granting or **removing permissions, roles, or guest access**
@@ -193,7 +182,7 @@ For API-driven setup/teardown reused across many files, see the `api-testing` sk
 
 **Counter-example — NOT destructive.** A test that creates its **own** record, asserts on it, then deletes **only that record** in cleanup is _isolated_, not destructive. It touches no state another test depends on. Tag it by importance (`@smoke` / `@regression` / `@api` / …) — never `@destructive`. It still needs a cleanup hook (see below), but it runs in the parallel suite.
 
-**Cleanup hook is required for any state-mutating test.** Both `@destructive` shared-state tests and isolated own-data tests **MUST** use `test.afterEach()` or `test.afterAll()` to revert what they wrote:
+[State Cleanup](../copilot-instructions.md#rule-state-cleanup) applies to both `@destructive` shared-state tests and isolated own-data tests:
 
 ```typescript
 test.describe('admin data management', () => {
@@ -227,7 +216,7 @@ test.describe('admin data management', () => {
 
 ### Phase 8: Data-driven tests
 
-Loop **outside** test blocks to generate individual test cases. Static data is imported from `.ts` modules via named `as const` exports.
+Loop **outside** test blocks to generate individual test cases. Static data is imported from `.ts` modules via named `as const` exports ([No JSON Static Data](../copilot-instructions.md#rule-no-json-static-data)).
 
 ```typescript
 import { INVALID_LOGIN_ATTEMPTS } from '../../../test-data/static/app/invalidCredentials';
@@ -244,11 +233,11 @@ for (const { description, email, password } of INVALID_LOGIN_ATTEMPTS) {
 }
 ```
 
-For **universal** invalid-value loops (wrong type for any `string`/`number`/etc. field) import from `test-data/static/util/invalid-values.ts` (`INVALID_STRING_VALUES`, `INVALID_NUMBER_VALUES`, etc.). Full three-tier rule in the `data-strategy` skill.
+For **universal** invalid-value loops (wrong type for any `string`/`number`/etc. field) import from `test-data/static/util/invalid-values.ts` (`INVALID_STRING_VALUES`, `INVALID_NUMBER_VALUES`, etc.). Full three-tier placement in the [data-strategy](data-strategy.instructions.md) skill ([Data Strategy](../copilot-instructions.md#rule-data-strategy)).
 
 ### Phase 9: Verify test independence and run
 
-Tests must be **independent** — no test may depend on the outcome or side-effects of another test. Use fixtures and `beforeEach` for shared setup.
+Keep tests independent ([Test Isolation](../copilot-instructions.md#rule-test-isolation)); use fixtures and `beforeEach` for shared setup.
 
 After adding or modifying a test file:
 
@@ -263,7 +252,7 @@ npx playwright test --grep @smoke
 npm run test:destructive
 ```
 
-Do not finish until the added/modified tests pass consistently. Do not suppress failures.
+See [Test Verification](../copilot-instructions.md#rule-test-verification).
 
 ## See Also
 
@@ -275,5 +264,5 @@ Do not finish until the added/modified tests pass consistently. Do not suppress 
 - **`common-tasks`** skill — copy-paste prompt templates for creating spec files of each type.
 - **`refactor-values`** skill — safe workflow for changing enum values or static data used in assertions.
 - **`debugging`** skill — failure-mode taxonomy and the right Playwright tool (UI Mode, Trace Viewer, Inspector) when a test fails or behaves unexpectedly during Phase 9 verification.
-- **`references/examples.md`** — four worked spec patterns (functional smoke, data-driven regression, destructive with cleanup, E2E multi-feature journey).
-- **`references/troubleshooting.md`** — common test-standards pitfalls (`@functional`, tag arrays, wrong imports, hard waits, JSON data, manual instantiation, parallel collisions, destructive leaks, committed explore files).
+- **[`references/examples.md`](references/examples.md)** — four worked spec patterns (functional smoke, data-driven regression, destructive with cleanup, E2E multi-feature journey).
+- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common test-standards pitfalls (`@functional`, tag arrays, wrong imports, hard waits, JSON data, manual instantiation, parallel collisions, destructive leaks, committed explore files).
