@@ -1,8 +1,9 @@
 # Gates the orchestration layer: every PR (and push to main) touching the
-# rule trees, the root docs, the ESLint config, the gate scripts or a version
-# surface must pass the link check, the Skills Index and frontmatter check,
-# the gate self-tests and the version-drift check. Pure bash + git -- no Node
-# install needed.
+# rule trees, the root docs, the ESLint config, the gate scripts, the mirror
+# build or a version surface must pass the link check, the Skills Index and
+# frontmatter check, the mirror check, the gate self-tests and the
+# version-drift check. Bash, git and the runner's preinstalled Node (built-ins
+# only) -- no npm install needed.
 name: Skill Lint
 
 on:
@@ -18,7 +19,9 @@ on:
             - '.cursor/**'
             - '.github/**'
             - 'scripts/*.sh'
+            - 'scripts/build-mirrors.mjs'
             - 'scripts/tests/**'
+            - 'skills-lock.json'
             - 'VERSION'
             - 'package.json'
             - 'CHANGELOG.md'
@@ -33,7 +36,9 @@ on:
             - '.cursor/**'
             - '.github/**'
             - 'scripts/*.sh'
+            - 'scripts/build-mirrors.mjs'
             - 'scripts/tests/**'
+            - 'skills-lock.json'
             - 'VERSION'
             - 'package.json'
             - 'CHANGELOG.md'
@@ -49,6 +54,9 @@ jobs:
 
             - name: Skills Index sync, frontmatter
               run: bash scripts/check-skill-crossrefs.sh
+
+            - name: Cursor and Copilot mirrors match a fresh build
+              run: bash scripts/check-mirrors.sh
 
             - name: Gate self-tests against fixture trees
               run: bash scripts/tests/run.sh

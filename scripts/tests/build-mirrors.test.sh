@@ -10,6 +10,8 @@
 #      at the rewritten paths, with relative links re-targeted inside each tree.
 #   3. A Copilot-mirrored file linking to a canonical file that has no Copilot
 #      counterpart makes the build fail and name the file.
+#   4. A mirror tree pruned at init (`--no-cursor`, `--no-copilot`) is skipped,
+#      not recreated, while the remaining tree still builds.
 #
 # Exits non-zero on the first failed assertion.
 
@@ -100,6 +102,45 @@ elif grep -q 'fixtures/SKILL.md' <<<"${output}" && grep -q 'pr-reviewer/SKILL.md
     pass "build fails on a link with no Copilot counterpart and names file and link"
 else
     fail "build failed without naming the file and link: ${output}"
+fi
+
+# --- 4. Pruned mirror trees are skipped, not recreated ---
+# Same paths the initializer removes for --no-cursor / --no-copilot.
+git -C "${SCRATCH}" checkout -q -- .claude/skills/fixtures/SKILL.md
+assert_absent() {
+    local label="$1"
+    shift
+    local p recreated=""
+    for p in "$@"; do
+        [[ -e "${SCRATCH}/${p}" ]] && recreated+=" ${p}"
+    done
+    if [[ -z "${recreated}" ]]; then
+        pass "${label}"
+    else
+        fail "${label} -- recreated:${recreated}"
+    fi
+}
+
+rm -rf "${SCRATCH}/.cursor"
+if build; then
+    assert_absent "build skips a pruned Cursor tree" .cursor
+    if [[ -z "$(git -C "${SCRATCH}" status --porcelain -- .github)" ]]; then
+        pass "Copilot tree still builds unchanged with Cursor pruned"
+    else
+        fail "Copilot tree changed with Cursor pruned:"
+        git -C "${SCRATCH}" status --porcelain -- .github
+    fi
+else
+    fail "build failed with the Cursor tree pruned"
+fi
+
+rm -rf "${SCRATCH}/.github/instructions" "${SCRATCH}/.github/prompts" \
+    "${SCRATCH}/.github/skills" "${SCRATCH}/.github/copilot-instructions.md"
+if build; then
+    assert_absent "build skips pruned Cursor and Copilot trees" \
+        .cursor .github/instructions .github/copilot-instructions.md
+else
+    fail "build failed with the Cursor and Copilot trees pruned"
 fi
 
 echo

@@ -10,7 +10,7 @@ That means contributions are checked by more gates than a typical repo:
 
 1. **ESLint + Prettier + `tsc --noEmit`** — standard code quality.
 2. **Skill lint (`npm run check:skills`)** — the Skills Index matches the skill folders on disk, every `SKILL.md` frontmatter has a matching `name` and a `description`, and every relative link and `file#anchor` reference in the rule trees, root docs and gate scripts resolves.
-3. **Cross-reference and drift gates** — skills reference each other and the Constitution; the gates fail if a rename or rule change leaves a dangling reference or lets the Claude/Cursor/Copilot trees drift apart.
+3. **Mirror check (`npm run check:mirrors`)** — the Cursor (`.cursor/`) and Copilot (`.github/`) trees are generated from `CLAUDE.md` and `.claude/skills/`; the check fails if the committed mirrors differ from a fresh build.
 4. **Version single-sourcing (`npm run check:version`)** — `VERSION`, `package.json`, and the latest `CHANGELOG.md` heading must agree.
 
 Run everything locally before pushing:
@@ -18,14 +18,14 @@ Run everything locally before pushing:
 ```bash
 npm ci
 npx tsc --noEmit && npx eslint . && npx prettier --check .
-npm run check:skills && npm run check:version
+npm run check:skills && npm run check:mirrors && npm run check:version
 npx playwright test        # requires env/.env.dev — see README "Environment Variables"
 ```
 
 ## Ground rules for changes
 
 - **Follow the Constitution.** The rules in `CLAUDE.md` apply to contributed test code too: fixtures over manual instantiation, web-first assertions, no hard waits, no `any`, `z.strictObject()` for API schemas, one tag per test.
-- **Rules and mirrors move together.** If you change a skill under `.claude/skills/`, update the matching `.cursor/` and `.github/` files in the same PR.
+- **Edit the canonical tree; the mirrors are generated.** Change `CLAUDE.md` or `.claude/skills/`, then run `npm run build:mirrors` to regenerate `.cursor/` and `.github/`. The pre-commit hook does this and stages the result whenever a canonical file is staged; CI rejects stale mirrors. Never edit the mirror files by hand.
 - **Vendored skills are off-limits for direct edits.** `skill-creator` and `playwright-cli` are tracked in `skills-lock.json` and synced from upstream; local edits get overwritten. Open an issue instead.
 - **New behavior needs an example.** A new pattern (fixture type, data tier, selector rule) should come with a small example file demonstrating it.
 

@@ -143,6 +143,7 @@ _Not affiliated with Microsoft. [Playwright](https://playwright.dev/) is an open
 - **Constitution Enforcement Hook** -- `.claude/scripts/enforce_constitution.py` is wired as a Claude Code `PreToolUse` hook in `.claude/settings.json`. It blocks any `Write`/`Edit`/`MultiEdit` that would introduce a mechanically-detectable WON'T violation (`waitForTimeout`, `z.object` in schemas, XPath, `@playwright/test` imports in specs, `.json` static data, the `@functional` tag, tags on `test.describe()`) before the file is ever written -- a hard backstop beneath the prompt-level rules.
 - **Version Single-Source** -- the root `VERSION` file is the one source of truth for the product version. `npm run version:stamp` writes it into `package.json`; `npm run check:version` asserts `VERSION` == `package.json` == the latest `CHANGELOG.md` heading and fails on drift. Gated in `.husky/pre-commit` (when a version surface is staged) and in CI (`skill-lint.yml`).
 - **Pre-Commit Link Check** -- `npm run check:skills-references` walks all three rule trees (`.claude/skills/`, `.cursor/skills/`, `.github/instructions/`, `.github/skills/`) and catches broken pointers, orphan references, and broken section anchors between each `SKILL.md` and its `references/` siblings. It fires from `.husky/pre-commit` whenever any of those trees has files staged.
+- **Generated Mirrors** -- the Cursor (`.cursor/`) and Copilot (`.github/instructions/`, `.github/copilot-instructions.md`) trees are built from `CLAUDE.md` and `.claude/skills/` by `npm run build:mirrors`. `.husky/pre-commit` regenerates and stages them whenever a canonical file is staged, and `npm run check:mirrors` fails CI (`skill-lint.yml`) when the committed mirrors differ from a fresh build. A tree pruned at init is skipped.
 - **Upstream Skill Sync** -- `skills-lock.json` records the SHA-256 of the locally vendored copies of `skill-creator` (from `anthropics/skills`) and `playwright-cli` (from `@playwright/cli`). `npm run skills:verify` re-hashes the local files and exits non-zero on drift; `npm run skills:reinstall` fetches upstream, overwrites `.claude/skills/<name>/SKILL.md` and `.cursor/skills/<name>/SKILL.md`, and refreshes the lock; `npm run skills:update` re-locks after intentional local edits.
 - **Playwright CLI Exploration** -- `playwright-cli` is the default browser exploration path for UI discovery, tracing, storage inspection, and flow capture
 - **Out-of-the-Box Anthropic Skills** -- `playwright-cli` and `skill-creator` are reinstalled fresh from the upstream Anthropic packages and tracked via `skills-lock.json` for reproducible installs
@@ -468,7 +469,9 @@ root/
 ├── scripts/
 │   ├── check-skill-references-drift.sh  # SKILL.md <-> references/ pointers, orphans, anchors
 │   ├── check-skill-crossrefs.sh    # Skills Index sync, frontmatter
+│   ├── check-mirrors.sh            # Committed Cursor/Copilot mirrors == fresh build
 │   ├── check-version-drift.sh      # VERSION <-> package.json <-> CHANGELOG consistency
+│   ├── build-mirrors.mjs           # Generate Cursor/Copilot trees from CLAUDE.md + .claude/skills/
 │   ├── stamp-version.sh            # Stamp VERSION into package.json (single-source)
 │   ├── install-playwright-cli-browsers.sh
 │   ├── link-cli.sh            # Links playwright/playwright-cli into ~/.local/bin
@@ -1242,6 +1245,7 @@ Husky automatically runs on staged files before each commit:
 
 - ESLint with auto-fix
 - Prettier formatting
+- Mirror build (`build:mirrors`) -- only when `CLAUDE.md`, `.claude/skills/`, the build script or `skills-lock.json` is staged; regenerates the Cursor and Copilot trees and stages them in the same commit
 - Skill link check (`check:skills-references`) -- only when a rule tree is staged
 - Version drift lint (`check:version`) -- only when `VERSION`, `package.json`, or `CHANGELOG.md` is staged
 
@@ -1486,7 +1490,7 @@ This project uses a **modular orchestrator + skills pattern** for AI-assisted de
     - `.github/instructions/*.instructions.md` -- Copilot instructions (auto-injected when editing files matching the `applyTo` glob pattern)
 - **Common tasks** (`.claude/skills/common-tasks/SKILL.md`) -- Prompt templates, anti-patterns checklist, and verification checklist for code generation.
 
-> **Self-contained trees.** Each tool's rule tree (`.claude/`, `.cursor/`, `.github/instructions/`) stands alone — no cross-tree references in user-facing prose. When you edit a rule, edit it in all three trees in the same PR; the `npm run check:skills-references` and `npm run check:skills-crossrefs` lints do not compare the trees, so per-tree mirror parity is a hand-maintained discipline.
+> **Self-contained trees.** Each tool's rule tree (`.claude/`, `.cursor/`, `.github/instructions/`) stands alone — no cross-tree references in user-facing prose. The Cursor and Copilot trees are generated: edit `CLAUDE.md` or `.claude/skills/`, then run `npm run build:mirrors` (the pre-commit hook does this when a canonical file is staged). `npm run check:mirrors` fails when the committed mirrors differ from a fresh build.
 
 ### Tool Comparison
 

@@ -1,5 +1,21 @@
 npx lint-staged
 
+# Mirror build: when a canonical rule-tree file (or the build's inputs) is
+# staged, regenerate the Cursor and Copilot trees and stage them, so mirrors
+# land in the same commit. Runs before the gates below, which read the mirrors.
+# Node built-ins only. Builds from the working tree, not the index.
+if git diff --cached --name-only --diff-filter=ACMRD \
+    | grep -qE '^(CLAUDE\.md$|\.claude/skills/|scripts/build-mirrors\.mjs$|skills-lock\.json$)'; then
+    npm run --silent build:mirrors
+    # Only existing outputs: a tree pruned at init is not built and must not be
+    # passed to git add (unknown pathspec is fatal).
+    for mirror in .cursor/skills .cursor/rules/rules.mdc .github/instructions .github/copilot-instructions.md; do
+        if [ -e "$mirror" ]; then
+            git add -A -- "$mirror"
+        fi
+    done
+fi
+
 # Link check: when any file it covers is staged (rule trees, root docs,
 # ESLint config, gate scripts). Deletions count: they can leave links dangling.
 if git diff --cached --name-only --diff-filter=ACMRD \
