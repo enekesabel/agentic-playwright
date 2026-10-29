@@ -24,3 +24,5 @@ env/.env.*
 
 # Playwright CLI
 .playwright-cli/
+# Claude Code default worktree location (nested checkouts)
+.claude/worktrees/

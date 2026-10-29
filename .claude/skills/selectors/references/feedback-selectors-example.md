@@ -44,8 +44,8 @@ export class ProductsPage {
     async createProduct(name: string): Promise<void> {
         await this.nameInput.fill(name);
         await this.saveButton.click();
-        await this.page.waitForResponse((r) =>
-            r.url().includes('/api/products')
+        await this.page.waitForResponse(
+            (r) => r.url().includes(ApiEndpoints.PRODUCTS) // illustrative
         );
     }
 }
@@ -60,4 +60,4 @@ await expect(productsPage.successMessage).toBeVisible();
 
 ## Forbidden — page objects without feedback selectors
 
-If a page object covers a form or CRUD operation but has no selectors for success / error / validation messages, the page object is incomplete. Every form submission or data mutation should have at least a success and error message selector so tests can verify the outcome.
+A page object without selectors for success / error / validation messages breaks [No Feedback-Less POM](../../../../CLAUDE.md#rule-no-feedback-less-pom). Every form submission or data mutation should have at least a success and error message selector so tests can verify the outcome.

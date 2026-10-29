@@ -18,7 +18,7 @@ export enum ApiEndpoints {
 
 **Required follow-up:**
 
-- Search for `'/api/users/login'` — anyone who hardcoded it instead of using the enum must be updated.
+- Search for `'/api/users/login'` ([Refactor Impact First](../SKILL.md#rule-refactor-impact-first)) — anyone who hardcoded it instead of using the enum must be updated.
 - Search for `ApiEndpoints.LOGIN` — verify all usages are correct (no string concatenation that would silently use the old value).
 - Check `fixtures/api/schemas/` for any schema using the old path as a `z.literal()`.
 - Check `helpers/` and `tests/{area}/auth.setup.ts` for hardcoded endpoint strings.
@@ -66,7 +66,7 @@ export enum Messages {
 - Every file that referenced `Messages.LOGIN_ERROR` is now a TypeScript error.
 - Run `npx tsc --noEmit` to surface all locations immediately.
 - Update every reference from `Messages.LOGIN_ERROR` to `Messages.AUTH_FAILURE`.
-- Search for the old key as a string in comments or documentation too (`.md` files, `.cursor/rules/*`).
+- Search for the old key as a string in comments or documentation too (`.md` files).
 
 ## Example 4: Static data value changed
 

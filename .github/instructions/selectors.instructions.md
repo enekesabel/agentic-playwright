@@ -6,20 +6,15 @@ applyTo: 'pages/**/*.ts'
 
 ## Critical
 
-- **Selector priority order is mandatory:** `getByRole` > `getByLabel` > `getByPlaceholder` > `getByText` > `getByTestId`. Move to the next option only when the previous one is not feasible.
-- **NEVER** use XPath (`page.locator('//...')` or `'xpath=...'`).
-- **NEVER** use CSS class or ID selectors as the primary strategy (`page.locator('.btn-primary')`, `page.locator('#submit')`). Acceptable only as an absolute last resort after ruling out every semantic option.
-- **Exploration with `playwright-cli` is mandatory** before writing any selectors. No guessing from wireframes, docs, or screenshots. Read the `playwright-cli` skill for the commands.
-- If the app cannot be reached or auth fails, **stop and notify the human** — never ship placeholder locators with guessed names.
-- String values inside `getByText(...)` come from `enums/{area}/*` (e.g. `Messages.LOGIN_ERROR`). **Never** hardcode repeated UI strings. See the `enums` skill.
-- **Every page object covering forms or CRUD must include feedback / validation message selectors** — success, error, field validation, toast, loading, empty state as applicable. A page object without them is incomplete.
-- **Locators are `get` accessors returning `Locator`** — this is a style/readability convention in the scaffold. Playwright's `Locator` is lazy, so `get` and a `readonly` field set in the constructor behave identically at runtime.
+- <a id="rule-no-css-id-primary-selectors"></a>**NEVER** use CSS class or ID selectors as the primary strategy (`page.locator('.btn-primary')`, `page.locator('#submit')`). Acceptable only as an absolute last resort after ruling out every semantic option.
+- **Locators are `get` accessors returning `Locator`:** see [Locators as getters](page-objects.instructions.md#rule-locators-as-getters).
+- Constitution rules that apply here: [Selectors](../copilot-instructions.md#rule-selectors), [No XPath](../copilot-instructions.md#rule-no-xpath), [Explore Before Generate](../copilot-instructions.md#rule-explore-before-generate), [No Substitute UI Exploration](../copilot-instructions.md#rule-no-substitute-ui-exploration), [Sources of Truth](../copilot-instructions.md#rule-sources-of-truth), [Enums for Strings](../copilot-instructions.md#rule-enums-for-strings), [No Feedback-Less POM](../copilot-instructions.md#rule-no-feedback-less-pom).
 
 ## Instructions
 
 ### Phase 1: Open and authenticate
 
-Never generate selectors from assumptions or documentation alone. Before writing any locators or page objects, explore the live application **by running `playwright-cli` in the terminal** (read the `playwright-cli` skill). **Do not** use IDE browser MCP, Cursor browser tools, or any substitute — orchestrator rule: **No Substitute UI Exploration**. If `playwright-cli` cannot run, stop and notify the human.
+Never generate selectors from assumptions or documentation alone. Before writing any locators or page objects, explore the live application **by running `playwright-cli` in the terminal** (read the `playwright-cli` skill). **Do not** use IDE browser MCP, Cursor browser tools, or any substitute — Constitution rule: [No Substitute UI Exploration](../copilot-instructions.md#rule-no-substitute-ui-exploration). If `playwright-cli` cannot run, stop and notify the human.
 
 ```bash
 playwright-cli open <APP_URL>
@@ -70,7 +65,7 @@ Now that the real UI is understood, generate selectors using the Priority Order 
 
 ## Priority Order (Mandatory)
 
-Use semantic locators in this order. Move to the next option ONLY when the previous one is not feasible:
+The order is the Constitution's [Selectors](../copilot-instructions.md#rule-selectors) rule: move to the next option only when the previous one is not feasible.
 
 1. **`getByRole()`** — Accessibility-based. Always the first choice for buttons, links, headings, textboxes, checkboxes, etc.
 2. **`getByLabel()`** — For form inputs that have associated `<label>` elements.
@@ -97,7 +92,7 @@ page.getByLabel('Password');
 page.getByPlaceholder('Search...');
 
 // 4. getByText -- static content
-page.getByText('Login successful');
+page.getByText(Messages.LOGIN_SUCCESS); // illustrative member
 page.getByText(Messages.LOGIN_ERROR); // prefer enums for repeated strings
 
 // 5. getByTestId -- last resort
@@ -106,7 +101,7 @@ page.getByTestId('user-avatar');
 
 ## Forbidden (NEVER Use)
 
-- **XPath selectors** — brittle, unreadable, not accessible.
+- **XPath selectors** ([No XPath](../copilot-instructions.md#rule-no-xpath)) — brittle, unreadable, not accessible.
 
     ```typescript
     // FORBIDDEN
@@ -114,7 +109,7 @@ page.getByTestId('user-avatar');
     page.locator('xpath=//button[text()="Submit"]');
     ```
 
-- **CSS selectors for primary strategy** — acceptable only as a `page.locator()` last resort, never as the default approach.
+- **CSS selectors for primary strategy** ([see above](#rule-no-css-id-primary-selectors)) — acceptable only as a `page.locator()` last resort, never as the default approach.
 
     ```typescript
     // AVOID unless absolutely necessary
@@ -128,28 +123,30 @@ page.getByTestId('user-avatar');
 - If the element is a **form input with a label**, prefer `getByLabel()` over `getByRole('textbox')`.
 - If identifying by **exact text** risks matching multiple elements, add `{ exact: true }` or use a more specific role.
 - If a parent container contains several similar elements, **scope the search**: `page.getByRole('form').getByRole('button', { name: 'Save' })`.
-- Use **enums** for repeated string values (error messages, labels) rather than hardcoding strings — see the `enums` skill.
+- Repeated string values (error messages, labels) come from enums: [Enums for Strings](../copilot-instructions.md#rule-enums-for-strings) and [Sources of Truth](../copilot-instructions.md#rule-sources-of-truth); see the `enums` skill.
 
 ## Feedback & Validation Message Selectors
 
-Every page object that covers a form or CRUD operation **must** include selectors for the feedback the application shows after those operations. These are the most commonly missed selectors and the most important for assertion coverage.
+Every page object that covers a form or CRUD operation includes selectors for the feedback the application shows after those operations ([No Feedback-Less POM](../copilot-instructions.md#rule-no-feedback-less-pom)). These are the most commonly missed selectors and the most important for assertion coverage.
 
 ### What to Capture
 
-| Feedback Type        | When It Appears                         | Selector Strategy                                                      |
-| -------------------- | --------------------------------------- | ---------------------------------------------------------------------- |
-| Success message      | After successful create/update/delete   | `getByText(Messages.CREATED_SUCCESS)` or `getByRole('alert')`          |
-| Error message        | After failed submission or server error | `getByText(Messages.SAVE_FAILED)` or `getByRole('alert')`              |
-| Field validation     | On blur or on submit with invalid input | `getByText('Email is required')` scoped to the form/field container    |
-| Toast / notification | Temporary banner after any operation    | `getByRole('status')` or `getByText()` on the toast content            |
-| Loading state        | During async operations                 | `getByRole('progressbar')` or `getByText('Loading...')`                |
-| Empty state          | When a list/table has no data           | `getByText('No items found')` or `getByRole('heading')` in empty state |
+| Feedback Type        | When It Appears                         | Selector Strategy                                                          |
+| -------------------- | --------------------------------------- | -------------------------------------------------------------------------- |
+| Success message      | After successful create/update/delete   | `getByText(Messages.CREATED_SUCCESS)` or `getByRole('alert')`              |
+| Error message        | After failed submission or server error | `getByText(Messages.SAVE_FAILED)` or `getByRole('alert')`                  |
+| Field validation     | On blur or on submit with invalid input | `getByText(Messages.EMAIL_REQUIRED)` scoped to the form/field container    |
+| Toast / notification | Temporary banner after any operation    | `getByRole('status')` or `getByText()` on the toast content                |
+| Loading state        | During async operations                 | `getByRole('progressbar')` or `getByText(Messages.LOADING)`                |
+| Empty state          | When a list/table has no data           | `getByText(Messages.EMPTY_STATE)` or `getByRole('heading')` in empty state |
 
 > The `Messages.*` values shown above are **illustrative placeholders**. Use the real enum members from your scaffold's `enums/{area}/*.ts` (e.g. `Messages.LOGIN_SUCCESS`, `Messages.LOGIN_ERROR`, `Messages.REQUIRED_FIELD`). Capture the exact rendered text with `playwright-cli` first and encode it via the `enums` skill.
 
+For a full worked code example (page object class with form + feedback locators + action method, plus how the test asserts on it), see [`references/feedback-selectors-example.md`](selectors/references/feedback-selectors-example.md).
+
 ### Forbidden: Page objects without feedback selectors
 
-If a page object covers a form or CRUD operation but has no selectors for success/error/validation messages, the page object is incomplete. Every form submission or data mutation should have at least a success and error message selector so tests can verify the outcome.
+A page object without those selectors breaks [No Feedback-Less POM](../copilot-instructions.md#rule-no-feedback-less-pom). Every form submission or data mutation should have at least a success and error message selector so tests can verify the outcome.
 
 ## See Also
 
@@ -158,3 +155,6 @@ If a page object covers a form or CRUD operation but has no selectors for succes
 - **`enums`** skill — where `Messages.*`, `ApiEndpoints.*`, and other app-defined strings live; live-text verification workflow.
 - **`common-tasks`** skill — prompt templates for "Add a New Page Object (With / Without Exploration)" that chain into this skill.
 - **`debugging`** skill — strict-mode violations (locator matched multiple), "element not found" / "not attached", and other locator-driven test failures.
+- **[`references/examples.md`](selectors/references/examples.md)** — three worked examples (new login page, adding feedback selectors, getByRole vs getByLabel decision).
+- **[`references/feedback-selectors-example.md`](selectors/references/feedback-selectors-example.md)** — full page-object code pattern with feedback locators and assertion usage.
+- **[`references/troubleshooting.md`](selectors/references/troubleshooting.md)** — common selector pitfalls (multi-match, XPath temptation, stale locators, missing feedback) and their fixes.

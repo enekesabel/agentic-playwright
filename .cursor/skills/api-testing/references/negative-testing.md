@@ -1,10 +1,10 @@
 # Per-Field Negative Testing — Patterns and Three-Tier Data Rule
 
-Long-form examples + invalid-value reference for `api-testing/SKILL.md` Phase 6. The Critical rules and the coverage checklist stay inline in `SKILL.md`; this file holds the verbose per-field patterns, the universal `INVALID_*` constants table, and the three-tier rule for _where_ invalid arrays live.
+Long-form examples + invalid-value reference for [`api-testing/SKILL.md`](../SKILL.md) Phase 6. The Critical rules and the coverage checklist stay inline in [`SKILL.md`](../SKILL.md); this file holds the verbose per-field patterns, the universal `INVALID_*` constants table, and the three-tier rule for _where_ invalid arrays live.
 
 ## Type-specific invalid values (universal arrays)
 
-Universal type-mismatch sets live as `as const` exports in `test-data/static/util/invalid-values.ts` and **must** be imported — never redefined inline.
+Universal type-mismatch sets live as `as const` exports in `test-data/static/util/invalid-values.ts` and are imported, never redefined inline ([Data Strategy](../../../rules/rules.mdc#rule-data-strategy)).
 
 | Field Type          | Constant                 | Values                                       |
 | ------------------- | ------------------------ | -------------------------------------------- |
@@ -160,12 +160,12 @@ for (const { description, value } of invalidProductIds) {
 }
 ```
 
-This is **not optional**. Every path parameter needs these tests regardless of whether the OpenAPI spec mentions them.
+This is [Path Param Fuzzing](../SKILL.md#rule-path-param-fuzzing): every path parameter gets these tests whether or not the OpenAPI spec mentions them.
 
 ## Three-tier rule — where invalid-value arrays live
 
-1. **Universal type-mismatch arrays** (values that are wrong for any field of a given primitive type) — **must** live in `test-data/static/util/invalid-values.ts` as exported `as const` tuples (`INVALID_STRING_VALUES`, `INVALID_NUMBER_VALUES`, `INVALID_BOOLEAN_VALUES`, `INVALID_UUID_VALUES`, `INVALID_ENUM_VALUES`, `INVALID_ARRAY_VALUES`, `INVALID_OBJECT_VALUES`). The file must be `.ts`, not `.json`, so it can represent `undefined`. Spec files import and iterate — **never** redefine inline.
-2. **Domain-specific curated invalid values** (invalid email formats, password policy violations, invalid locales, forbidden product categories, etc.) — live under `test-data/static/{area}/` as `.ts` with `as const` exports, following the existing `invalidCredentials.ts` precedent (`INVALID_EMAILS`, `INVALID_PASSWORDS`, `INVALID_LOGIN_ATTEMPTS`). Also imported, never inline. Never `.json`.
+1. **Universal type-mismatch arrays** (values that are wrong for any field of a given primitive type) — **must** live in `test-data/static/util/invalid-values.ts` as exported `as const` tuples (`INVALID_STRING_VALUES`, `INVALID_NUMBER_VALUES`, `INVALID_BOOLEAN_VALUES`, `INVALID_UUID_VALUES`, `INVALID_ENUM_VALUES`, `INVALID_ARRAY_VALUES`, `INVALID_OBJECT_VALUES`). The file is `.ts` rather than `.json` so it can represent `undefined` ([No JSON Static Data](../../../rules/rules.mdc#rule-no-json-static-data)). Spec files import and iterate; see [Data Strategy](../../../rules/rules.mdc#rule-data-strategy).
+2. **Domain-specific curated invalid values** (invalid email formats, password policy violations, invalid locales, forbidden product categories, etc.) — live under `test-data/static/{area}/` as `.ts` with `as const` exports, following the existing `invalidCredentials.ts` precedent (`INVALID_EMAILS`, `INVALID_PASSWORDS`, `INVALID_LOGIN_ATTEMPTS`). Also imported, never inline.
 3. **Field-specific boundary / constraint values** (e.g., out-of-range values for a `number` field constrained to `1..5`: `[-1, 0, 0.99, 5.01, 6, 1000]`) — **may stay inline** in the spec file when the set is meaningful to exactly one field and promoting it (e.g., `INVALID_NUMBER_VALUES_1_TO_5`) would be over-engineering. If the same boundary set is needed in 2+ fields or spec files, promote it to static data.
 
 A single validation describe typically combines tier 1 and tier 3 in separate `for...of` loops: one iterating `INVALID_NUMBER_VALUES` for type mismatch, another iterating an inline array for range violations.

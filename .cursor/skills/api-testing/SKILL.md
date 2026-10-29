@@ -10,13 +10,11 @@ author: Ivan Davidov
 
 These rules are non-negotiable. Violating any of them breaks the scaffold's contract.
 
-- **NEVER** hardcode API URLs, access tokens, emails, passwords, or endpoint paths. The only allowed sources of truth are `process.env.*` (for URLs and credentials) and the `enums/{area}/*` enums (for endpoint paths, e.g. `ApiEndpoints.LOGIN`).
-- **ALWAYS** validate API response bodies with Zod using the exact assertion pattern `expect(SchemaName.parse(body)).toBeTruthy();`. Type generics alone are not enough, and `schema.parse(body)` without the `expect(...).toBeTruthy()` wrapper is not enough.
-- **ALWAYS** wrap each API call in `test.step()` when a test contains more than one API call.
-- **NEVER** silently drop a test because the API misbehaves. Write the test as the spec says, wrap it in `test.skip`, and add a `// FIXME: <ticket-url>` comment.
-- **NEVER** stop at `{}` empty-body validation. Every request-body endpoint requires per-field omission and per-field invalid-type tests.
-- **ALWAYS** fuzz path parameters with the invalid-format data-driven loop — regardless of whether OpenAPI mentions it.
-- **ALWAYS** use the `apiRequest` fixture directly in tests. Only promote to a helper fixture when the same setup/teardown is reused across 3+ test files.
+- <a id="rule-path-param-fuzzing"></a>**ALWAYS** fuzz path parameters with the invalid-format data-driven loop — regardless of whether OpenAPI mentions it.
+- <a id="rule-helper-fixture-promotion-3plus"></a>**ALWAYS** use the `apiRequest` fixture directly in tests. Only promote to a helper fixture when the same setup/teardown is reused across 3+ test files.
+- <a id="rule-405-test-per-endpoint"></a>**ALWAYS** cover every endpoint with at least one unsupported HTTP method test (405).
+- <a id="rule-auth-matrix-401-403"></a>**ALWAYS** give every endpoint that declares `security` in the OpenAPI spec both a 401 test (no token) and a 403 test (wrong-role token).
+- Constitution rules that apply here: [Sources of Truth](../../rules/rules.mdc#rule-sources-of-truth), [Response Validation](../../rules/rules.mdc#rule-response-validation), [API Test Steps](../../rules/rules.mdc#rule-api-test-steps), [No Silent Coverage Drops](../../rules/rules.mdc#rule-no-silent-coverage-drops), [No Empty-Body-Only 400](../../rules/rules.mdc#rule-no-empty-body-only-400).
 
 ## Instructions
 
@@ -27,7 +25,7 @@ The API contract — not observed behavior — is the source of truth for schema
 1. **If OpenAPI / Swagger / equivalent documentation exists (the normal case):**
     - Build schemas and tests **strictly from the documented contract**: field names, types, required vs optional, nullability, status codes, error shapes.
     - **Do NOT** curl the endpoint first to "see what it returns" and then write schemas that match reality.
-    - If, during test execution, the actual response disagrees with the documentation (missing field, wrong type, wrong status code, extra field), that is a **bug to report**, not a reason to loosen the schema. Handle it via Phase 7 (`test.skip` + `// FIXME: <ticket-url>`).
+    - If, during test execution, the actual response disagrees with the documentation (missing field, wrong type, wrong status code, extra field), that is a **bug to report**, not a reason to loosen the schema (see [Explore Before Generate](../../rules/rules.mdc#rule-explore-before-generate)). Handle it via Phase 7.
 
 2. **Only if no documentation is provided** (legacy endpoint, undocumented service, etc.):
     - Make a real request to discover actual response structure, field names, data types, optional vs required fields, nested objects/arrays, and error response formats.
@@ -38,7 +36,7 @@ The API contract — not observed behavior — is the source of truth for schema
 
 Schemas live under `fixtures/api/schemas/`.
 
-> **`{area}` is a placeholder.** Run `ls fixtures/api/schemas/` to discover the real subdirectory names in this repo (e.g., `front-office`, `back-office`) and use those instead.
+> See [`{area}` is a placeholder](../../rules/rules.mdc#rule-area-placeholder). Run `ls fixtures/api/schemas/` to discover the real subdirectory names here.
 
 ```
 fixtures/api/schemas/
@@ -48,7 +46,7 @@ fixtures/api/schemas/
     └── errorResponseSchema.ts
 ```
 
-Build the schema directly from the OpenAPI / Swagger contract — including the response envelope (`success / message / data / errors` or whatever the spec describes). Spell every field out per endpoint; do not invent a factory helper. If the same envelope repeats across many endpoints in one domain, extract a per-domain `_envelope.ts` (`z.strictObject`) and compose via `.extend(...)` — only after the repetition is real:
+Build the schema directly from the OpenAPI / Swagger contract — including the response envelope (`success / message / data / errors` or whatever the spec describes). Spell every field out per endpoint ([No Envelope Factory](../type-safety/SKILL.md#rule-no-envelope-factory)). If the same envelope repeats across many endpoints in one domain, extract a per-domain `_envelope.ts` (`z.strictObject`) and compose via `.extend(...)` — only after the repetition is real:
 
 ```typescript
 // fixtures/api/schemas/{area}/productSchema.ts
@@ -87,12 +85,15 @@ import {
     UnauthorizedResponse,
     UnauthorizedResponseSchema,
 } from '../../../fixtures/api/schemas/util/errorResponseSchema';
+import { ApiEndpoints } from '../../../enums/app/app';
+import { INVALID_LOGIN_ATTEMPTS } from '../../../test-data/static/app/invalidCredentials';
 
+const [attempt] = INVALID_LOGIN_ATTEMPTS;
 const { status, body } = await apiRequest<UnauthorizedResponse>({
     method: 'POST',
-    url: '/api/login',
+    url: ApiEndpoints.LOGIN,
     baseUrl: process.env.API_URL,
-    body: { email: 'bad@email.com', password: 'wrong' },
+    body: { email: attempt.email, password: attempt.password },
 });
 
 expect(status).toBe(401);
@@ -111,11 +112,12 @@ import {
     UserResponse,
     UserResponseSchema,
 } from '../../../fixtures/api/schemas/app/userSchema';
+import { ApiEndpoints } from '../../../enums/app/app';
 
 test('should return user data', { tag: '@api' }, async ({ apiRequest }) => {
     const { status, body } = await apiRequest<UserResponse>({
         method: 'GET',
-        url: '/api/users/me',
+        url: ApiEndpoints.CURRENT_USER,
         baseUrl: process.env.API_URL,
         headers: process.env.ACCESS_TOKEN,
     });
@@ -125,7 +127,7 @@ test('should return user data', { tag: '@api' }, async ({ apiRequest }) => {
 });
 ```
 
-Use the `apiRequest` fixture **directly** for all API work in tests — assertions, setup calls in `beforeEach`, teardown calls in `afterEach`, and one-off requests. Do **not** create a separate helper fixture for every endpoint.
+Use the `apiRequest` fixture **directly** for all API work in tests — assertions, setup calls in `beforeEach`, teardown calls in `afterEach`, and one-off requests. Helper fixtures are the exception, see [Helper Fixture Promotion (3+ files)](#rule-helper-fixture-promotion-3plus).
 
 **Request parameters:**
 
@@ -138,7 +140,7 @@ Use the `apiRequest` fixture **directly** for all API work in tests — assertio
 | `headers`  | `string`                                          | No       | Auth token for Authorization header |
 | `authType` | `'Bearer' \| 'Token' \| 'Basic'`                  | No       | Auth scheme (default: `'Bearer'`)   |
 
-**Response validation** — combine compile-time and runtime safety:
+**Response validation** ([Response Validation](../../rules/rules.mdc#rule-response-validation)) — combine compile-time and runtime safety:
 
 ```typescript
 const { status, body } = await apiRequest<UserResponse>({ ... });
@@ -146,9 +148,9 @@ const { status, body } = await apiRequest<UserResponse>({ ... });
 expect(UserResponseSchema.parse(body)).toBeTruthy();
 ```
 
-The generic `<UserResponse>` gives you compile-time type safety on `body`, while `UserResponseSchema.parse()` gives you runtime validation. Always use both.
+The generic `<UserResponse>` gives you compile-time type safety on `body`, while `UserResponseSchema.parse()` gives you runtime validation.
 
-**Credentials and URLs** — pull from env, never inline:
+**Credentials and URLs** — pull from env, never inline ([Sources of Truth](../../rules/rules.mdc#rule-sources-of-truth), [No Secrets](../../rules/rules.mdc#rule-no-secrets)):
 
 ```typescript
 // CORRECT
@@ -171,7 +173,7 @@ url: ApiEndpoints.LOGIN,
 
 ### Phase 4: Wrap multi-call tests in `test.step`
 
-**MANDATORY:** When a test contains more than one API call, each call **MUST** be wrapped in a dedicated `test.step()` with:
+When a test contains more than one API call, [API Test Steps](../../rules/rules.mdc#rule-api-test-steps) applies: each call goes in a dedicated `test.step()` with:
 
 1. A descriptive name indicating the API operation
 2. Proper validation based on the context (status code, schema, specific fields)
@@ -195,7 +197,7 @@ test(
         await test.step('Create user via POST /api/users', async () => {
             const { status, body } = await apiRequest<UserResponse>({
                 method: 'POST',
-                url: '/api/users',
+                url: ApiEndpoints.USERS, // illustrative
                 baseUrl: process.env.API_URL,
                 headers: process.env.ACCESS_TOKEN,
                 body: userData,
@@ -209,7 +211,7 @@ test(
         await test.step('Retrieve user via GET /api/users/:id', async () => {
             const { status, body } = await apiRequest<UserResponse>({
                 method: 'GET',
-                url: `/api/users/${userId}`,
+                url: `${ApiEndpoints.USERS}/${userId}`,
                 baseUrl: process.env.API_URL,
                 headers: process.env.ACCESS_TOKEN,
             });
@@ -223,7 +225,7 @@ test(
         await test.step('Delete user via DELETE /api/users/:id', async () => {
             const { status, body } = await apiRequest<null>({
                 method: 'DELETE',
-                url: `/api/users/${userId}`,
+                url: `${ApiEndpoints.USERS}/${userId}`,
                 baseUrl: process.env.API_URL,
                 headers: process.env.ACCESS_TOKEN,
             });
@@ -235,13 +237,13 @@ test(
 );
 ```
 
-**Forbidden pattern:** multiple API calls inside a single `test` body **without** `test.step` wrappers — the trace shows one big test, debugging which call failed requires reading the assertions, and reporting can't surface create-vs-get-vs-delete structure. For the full anti-pattern code block see `references/test-step-patterns.md`.
+**Forbidden pattern:** multiple API calls inside a single `test` body **without** `test.step` wrappers — the trace shows one big test, debugging which call failed requires reading the assertions, and reporting can't surface create-vs-get-vs-delete structure. For the full anti-pattern code block see [`references/test-step-patterns.md`](references/test-step-patterns.md).
 
 **Single API call exception:** If a test contains **only one** API call, `test.step` is optional but recommended for consistency.
 
 ### Phase 5: Cover the full status-code matrix
 
-For every endpoint × HTTP method combination, tests **MUST** cover **every status code listed in the OpenAPI spec** plus the baseline scenarios below. If the OpenAPI spec lists a status code not in this table, it still requires a test.
+For every endpoint × HTTP method combination, cover every status code listed in the OpenAPI spec ([No Silent Coverage Drops](../../rules/rules.mdc#rule-no-silent-coverage-drops)) plus the baseline scenarios below. A status code the spec lists that is not in this table still needs a test. The 401/403 rows are homed in [Auth Matrix (401 and 403)](#rule-auth-matrix-401-403) and the 405 row in [405 Test Per Endpoint](#rule-405-test-per-endpoint).
 
 | Scenario                                    | Status  | What to assert                                                                    |
 | ------------------------------------------- | ------- | --------------------------------------------------------------------------------- |
@@ -265,12 +267,12 @@ For every endpoint × HTTP method combination, tests **MUST** cover **every stat
 - Auth tokens: `process.env.ACCESS_TOKEN` (full permissions), `process.env.ACCESS_TOKEN_ZERO` (zero permissions)
 - Config: `process.env.API_URL` + `/api/X` — never bare `process.env.API_URL`
 - Cleanup: `afterAll` in POST describes (holds `resourceId` from the happy-path test); `afterAll` in GET/PUT/DELETE describes (resource created in `beforeAll`)
-- When a `test.skip` is needed due to a backend bug: add `// FIXME: <ticket-url>` comment + `/* eslint-disable playwright/no-skipped-test */` above it
+- When a `test.skip` is needed due to a backend bug: follow Phase 7 (the `// FIXME` and next-line `eslint-disable` pattern)
 - Tag: `@api` for API tests (check real tag in existing spec files for other areas)
 
 ### Phase 6: Add per-field negative / validation coverage
 
-Testing only with an empty body (`{}`) is never sufficient. Every endpoint that accepts a request body (POST, PUT, PATCH) requires systematic per-field validation testing.
+Every endpoint that accepts a request body (POST, PUT, PATCH) requires systematic per-field validation testing; an empty body alone is never enough ([No Empty-Body-Only 400](../../rules/rules.mdc#rule-no-empty-body-only-400)).
 
 **Coverage checklist for endpoints with a body:**
 
@@ -279,13 +281,13 @@ Testing only with an empty body (`{}`) is never sufficient. Every endpoint that 
 3. **Each field with type-inappropriate values** — `for...of` loop per field using contextually appropriate invalid values
 4. **Boundary values** where applicable (empty string for min-length, negative for positive-only numbers, past dates for future-only, etc.)
 
-**Universal invalid arrays** live as `as const` exports in `test-data/static/util/invalid-values.ts` — `INVALID_STRING_VALUES`, `INVALID_UUID_VALUES`, `INVALID_NUMBER_VALUES`, `INVALID_BOOLEAN_VALUES`, `INVALID_ENUM_VALUES`, `INVALID_ARRAY_VALUES`, `INVALID_OBJECT_VALUES`. **Always import**; never redefine inline.
+**Universal invalid arrays** live as `as const` exports in `test-data/static/util/invalid-values.ts` — `INVALID_STRING_VALUES`, `INVALID_UUID_VALUES`, `INVALID_NUMBER_VALUES`, `INVALID_BOOLEAN_VALUES`, `INVALID_ENUM_VALUES`, `INVALID_ARRAY_VALUES`, `INVALID_OBJECT_VALUES`. Import them; never redefine inline ([Data Strategy](../../rules/rules.mdc#rule-data-strategy)).
 
-**Patterns to use** (full code in `references/negative-testing.md`):
+**Patterns to use** (full code in [`references/negative-testing.md`](references/negative-testing.md)):
 
 - **`for...of` spread-and-override** — base valid payload, override one field at a time with `INVALID_*` values, assert `400` + `BadRequestResponseSchema.parse(body)`.
 - **Omitting required fields** — destructure + rest (`const { [field]: _, ...rest } = validPayload`) per required field.
-- **Path-parameter validation** — data-driven loop over `[{ description, value }]` with numeric strings, boolean-likes, special chars, injection attempts. **Mandatory regardless of OpenAPI mention.**
+- **Path-parameter validation** — data-driven loop over `[{ description, value }]` with numeric strings, boolean-likes, special chars, injection attempts. See [Path Param Fuzzing](#rule-path-param-fuzzing).
 
 **Three-tier rule for _where_ invalid-value arrays live:**
 
@@ -293,21 +295,21 @@ Testing only with an empty body (`{}`) is never sufficient. Every endpoint that 
 2. **Domain-specific curated invalid sets** (invalid emails, weak passwords, forbidden categories) → `test-data/static/{area}/*.ts` (`as const`). Import; never inline. Never `.json`.
 3. **Field-specific boundary / range values** used in exactly one field → **inline** in the spec. Promote to static data only when reused across 2+ fields or spec files.
 
-A typical validation describe combines tier 1 and tier 3 in separate `for...of` loops. For full code blocks, the `INVALID_*` constants table, and the email-field type-vs-format combination rule, see `references/negative-testing.md`.
+A typical validation describe combines tier 1 and tier 3 in separate `for...of` loops. For full code blocks, the `INVALID_*` constants table, and the email-field type-vs-format combination rule, see [`references/negative-testing.md`](references/negative-testing.md).
 
-**Forbidden: empty-body-only validation.** A single `body: {}` test asserting `400` is **not** sufficient. Per-field omission and per-field invalid-type loops are mandatory. Full anti-pattern in `references/test-step-patterns.md`.
+**Empty-body-only validation** is the anti-pattern behind [No Empty-Body-Only 400](../../rules/rules.mdc#rule-no-empty-body-only-400): a single `body: {}` test asserting `400` leaves every field untested. Full anti-pattern in [`references/test-step-patterns.md`](references/test-step-patterns.md).
 
 ### Phase 7: Handle behavior mismatches
 
 When the API's actual behavior differs from the OpenAPI spec or from the expected status code in the Phase 5 coverage matrix:
 
-1. **NEVER silently drop the test.** The test must exist in the file.
+1. The test must exist in the file ([No Silent Coverage Drops](../../rules/rules.mdc#rule-no-silent-coverage-drops)).
 2. **Write the test as the spec says it should work** (expected status code and schema).
 3. **Wrap it with `test.skip`** and add a `// FIXME:` comment explaining the discrepancy:
 
 ```typescript
-/* eslint-disable playwright/no-skipped-test */
 // FIXME: API returns 500 instead of 422 for invalid price on PUT. Backend bug.
+// eslint-disable-next-line playwright/no-skipped-test
 test.skip(
     'should return 422 when price is a non-numeric string',
     { tag: '@api' },
@@ -324,7 +326,7 @@ test.skip(
 
 For **critical, recurring setup/teardown operations** that multiple tests depend on (e.g., creating a user account that several test files need as a precondition, or seeding complex data that must be cleaned up), use helper fixtures in `fixtures/helper/helper-fixture.ts`.
 
-Helper fixtures wrap the `apiRequest` plain function with Playwright's fixture lifecycle: setup before `await use(...)`, yield via `use(data)`, teardown after — runs even if the test fails. For the full code pattern see `references/helper-fixture-example.md`.
+Helper fixtures wrap the `apiRequest` plain function with Playwright's fixture lifecycle: setup before `await use(...)`, yield via `use(data)`, teardown after — runs even if the test fails. For the full code pattern see [`references/helper-fixture-example.md`](references/helper-fixture-example.md).
 
 **When to use `apiRequest` fixture vs. helper fixture:**
 
@@ -334,7 +336,7 @@ Helper fixtures wrap the `apiRequest` plain function with Playwright's fixture l
 | **Helper fixture** (important ops only) | Critical setup/teardown reused across many test files with guaranteed lifecycle | Seed a user account that 10+ test files depend on          |
 | **Factory function**                    | Generate dynamic test data (no API call)                                        | `generateUser()` from `test-data/factories/`               |
 
-**Rule of thumb:** Use `apiRequest` directly unless you find yourself copy-pasting the same multi-step setup/teardown into 3+ test files.
+**Rule of thumb:** see [Helper Fixture Promotion (3+ files)](#rule-helper-fixture-promotion-3plus); promote only when you find yourself copy-pasting the same multi-step setup/teardown into 3+ test files.
 
 ## API Architecture
 
@@ -358,15 +360,15 @@ fixtures/
 
 ## See Also
 
-- **`type-safety`** skill — Zod 4 schemas, `z.strictObject()`, the mandatory `expect(SchemaName.parse(body)).toBeTruthy();` pattern, `zOutput` / `zInput` inference.
+- **`type-safety`** skill — Zod 4 schemas, `z.strictObject()`, `zOutput` / `zInput` inference. The assertion pattern is [Response Validation](../../rules/rules.mdc#rule-response-validation).
 - **`data-strategy`** skill — Faker + Zod factories for happy-path payloads, the three-tier rule for negative testing (universal `INVALID_*` arrays + domain-specific sets + inline boundary values).
 - **`enums`** skill — `ApiEndpoints.*` for endpoint paths and error message constants used in assertions.
-- **`fixtures`** skill — the `apiRequest` fixture itself, helper fixtures for setup/teardown, and the 3+ files rule of thumb for promotion (Phase 8).
+- **`fixtures`** skill — the `apiRequest` fixture itself, helper fixtures for setup/teardown, and [Helper Fixture Promotion (3+ files)](#rule-helper-fixture-promotion-3plus) (Phase 8).
 - **`helpers`** skill — auth bootstrap (`createAppStorageState`, `setUserAccessToken`) that publishes `process.env.ACCESS_TOKEN` consumed by API tests.
-- **`test-standards`** skill — `@api` tag, `test.step` requirements for multi-call tests, single-tag rule.
+- **`test-standards`** skill — `@api` tag and test structure; [API Test Steps](../../rules/rules.mdc#rule-api-test-steps) and [No Multiple Tags](../../rules/rules.mdc#rule-no-multiple-tags) are Constitution rules.
 - **`refactor-values`** skill — when an endpoint enum value or a Zod literal needs to change, the impact-analysis workflow.
-- **`references/examples.md`** — three end-to-end walkthroughs (new endpoint, multi-step workflow, validation lockdown).
-- **`references/troubleshooting.md`** — common API-testing pitfalls (ZodError, 401/null body, status-code drift, empty-body-only coverage, hardcoded URLs/tokens).
-- **`references/negative-testing.md`** — full Phase 6 code blocks (per-field invalid-type, omitting required fields, path-parameter validation), the `INVALID_*` constants table, and the three-tier rule.
-- **`references/test-step-patterns.md`** — full anti-pattern code blocks for Phase 4 (multi-call without `test.step`) and Phase 6 (empty-body-only validation).
-- **`references/helper-fixture-example.md`** — full lifecycle-wired helper-fixture code pattern from Phase 8.
+- **[`references/examples.md`](references/examples.md)** — three end-to-end walkthroughs (new endpoint, multi-step workflow, validation lockdown).
+- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common API-testing pitfalls (ZodError, 401/null body, status-code drift, empty-body-only coverage, hardcoded URLs/tokens).
+- **[`references/negative-testing.md`](references/negative-testing.md)** — full Phase 6 code blocks (per-field invalid-type, omitting required fields, path-parameter validation), the `INVALID_*` constants table, and the three-tier rule.
+- **[`references/test-step-patterns.md`](references/test-step-patterns.md)** — full anti-pattern code blocks for Phase 4 (multi-call without `test.step`) and Phase 6 (empty-body-only validation).
+- **[`references/helper-fixture-example.md`](references/helper-fixture-example.md)** — full lifecycle-wired helper-fixture code pattern from Phase 8.

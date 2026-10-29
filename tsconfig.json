@@ -22,6 +22,7 @@
         "dist",
         "playwright-report",
         "test-results",
-        "packages/create-agentic-playwright/template"
+        "packages/create-agentic-playwright/template",
+        ".claude/worktrees"
     ]
 }

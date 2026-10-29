@@ -118,7 +118,7 @@ _Not affiliated with Microsoft. [Playwright](https://playwright.dev/) is an open
 - [Coding Standards](#coding-standards)
 - [Core Principles (The Constitution)](#core-principles-the-constitution)
 - [AI-Assisted Development Workflow](#ai-assisted-development-workflow)
-- [AI Rules Architecture](#ai-rules-architecture)
+- [AI Skills Architecture](#ai-skills-architecture)
 - [Architecture Overview](#architecture-overview)
 - [Troubleshooting](#troubleshooting)
 - [Agentic Playwright Pro](#agentic-playwright-pro)
@@ -139,10 +139,11 @@ _Not affiliated with Microsoft. [Playwright](https://playwright.dev/) is an open
 - **Parallel Execution** -- Fast test runs with configurable workers
 - **Comprehensive Reporting** -- HTML reports with traces, screenshots, and videos
 - **AI-Assisted Development** -- Modular orchestrator rules for Claude Code, Cursor, and GitHub Copilot with glob-scoped auto-loading. Each tool's rule tree (`.claude/`, `.cursor/`, `.github/instructions/`) is self-contained and stands alone.
-- **Confidence-Gated Workflow** -- The `ai-native-workflow` skill is the sole entry-point router for non-trivial work. Every plan must include `Confidence: <1-10>`, `Rationale`, and `Unknowns`; below confidence 5 the agent is required to stop and ask the user for the missing primary input rather than emit a plan built on guesses.
-- **Constitution Enforcement Hook** -- `.claude/scripts/enforce_constitution.py` is wired as a Claude Code `PreToolUse` hook in `.claude/settings.json`. It blocks any `Write`/`Edit`/`MultiEdit` that would introduce a mechanically-detectable WON'T violation (`waitForTimeout`, `z.object` in schemas, XPath, `@playwright/test` imports in specs, `.json` static data, the `@functional` tag, tags on `test.describe()`) before the file is ever written -- a hard backstop beneath the prompt-level rules.
+- **Confidence-Gated Workflow** -- The `ai-native-workflow` skill is the sole entry-point router for non-trivial work. Every plan carries a confidence score, a rationale, and its unknowns, and a low score sends the agent back to ask the user for the missing input rather than emit a plan built on guesses (see [Phase 4: Confidence-Gate Format](.claude/skills/ai-native-workflow/SKILL.md#phase-4--confidence-gate-format-mandatory)).
+- **Constitution Enforcement Hook** -- `.claude/scripts/enforce_constitution.py` is wired as a Claude Code `PreToolUse` hook in `.claude/settings.json`. It blocks any `Write`/`Edit`/`MultiEdit` that would introduce a mechanically-detectable WON'T violation (`waitForTimeout` -- [No Hard Waits](CLAUDE.md#rule-no-hard-waits); `z.object` in schemas -- [No Loose Schemas](CLAUDE.md#rule-no-loose-schemas); XPath -- [No XPath](CLAUDE.md#rule-no-xpath); `@playwright/test` imports in specs -- [Imports](CLAUDE.md#rule-imports); `.json` static data -- [No JSON Static Data](CLAUDE.md#rule-no-json-static-data); the `@functional` tag -- [No Multiple Tags](CLAUDE.md#rule-no-multiple-tags); tags on `test.describe()` -- [No Tags on Describe](CLAUDE.md#rule-no-tags-on-describe)) before the file is ever written -- a hard backstop beneath the prompt-level rules.
 - **Version Single-Source** -- the root `VERSION` file is the one source of truth for the product version. `npm run version:stamp` writes it into `package.json`; `npm run check:version` asserts `VERSION` == `package.json` == the latest `CHANGELOG.md` heading and fails on drift. Gated in `.husky/pre-commit` (when a version surface is staged) and in CI (`skill-lint.yml`).
-- **Pre-Commit Drift Lints** -- `npm run check:skills-drift` keeps Constitution rules anchored in their owning skill's Critical block; `npm run check:skills-references` walks all three rule trees (`.claude/skills/`, `.cursor/skills/`, `.github/instructions/`, `.github/skills/`) and catches broken pointers, orphan references, and broken section anchors between each `SKILL.md` and its `references/` siblings. Both fire from `.husky/pre-commit` whenever any of those trees has files staged.
+- **Pre-Commit Link Check** -- `npm run check:skills-references` walks all three rule trees (`.claude/skills/`, `.cursor/skills/`, `.github/instructions/`, `.github/skills/`) and catches broken pointers, orphan references, and broken section anchors between each `SKILL.md` and its `references/` siblings. It fires from `.husky/pre-commit` whenever any of those trees has files staged.
+- **Generated Mirrors** -- the Cursor (`.cursor/`) and Copilot (`.github/instructions/`, [`.github/copilot-instructions.md`](.github/copilot-instructions.md)) trees are built from [`CLAUDE.md`](CLAUDE.md) and `.claude/skills/` by `npm run build:mirrors`. `.husky/pre-commit` regenerates and stages them whenever a canonical file is staged, and `npm run check:mirrors` fails CI (`skill-lint.yml`) when the committed mirrors differ from a fresh build. A tree pruned at init is skipped. The authoring convention (one home per rule, link instead of restating) is [Editing the Rule Trees](CLAUDE.md#editing-the-rule-trees).
 - **Upstream Skill Sync** -- `skills-lock.json` records the SHA-256 of the locally vendored copies of `skill-creator` (from `anthropics/skills`) and `playwright-cli` (from `@playwright/cli`). `npm run skills:verify` re-hashes the local files and exits non-zero on drift; `npm run skills:reinstall` fetches upstream, overwrites `.claude/skills/<name>/SKILL.md` and `.cursor/skills/<name>/SKILL.md`, and refreshes the lock; `npm run skills:update` re-locks after intentional local edits.
 - **Playwright CLI Exploration** -- `playwright-cli` is the default browser exploration path for UI discovery, tracing, storage inspection, and flow capture
 - **Out-of-the-Box Anthropic Skills** -- `playwright-cli` and `skill-creator` are reinstalled fresh from the upstream Anthropic packages and tracked via `skills-lock.json` for reproducible installs
@@ -466,10 +467,11 @@ root/
 │   └── cli.config.json        # playwright-cli browser defaults (Chromium channel)
 │
 ├── scripts/
-│   ├── check-rules-drift.sh         # Constitution rules <-> skill Critical-block anchors
 │   ├── check-skill-references-drift.sh  # SKILL.md <-> references/ pointers, orphans, anchors
-│   ├── check-skill-crossrefs.sh    # Skills Index sync, frontmatter, cross-skill refs
+│   ├── check-skill-crossrefs.sh    # Skills Index sync, frontmatter
+│   ├── check-mirrors.sh            # Committed Cursor/Copilot mirrors == fresh build
 │   ├── check-version-drift.sh      # VERSION <-> package.json <-> CHANGELOG consistency
+│   ├── build-mirrors.mjs           # Generate Cursor/Copilot trees from CLAUDE.md + .claude/skills/
 │   ├── stamp-version.sh            # Stamp VERSION into package.json (single-source)
 │   ├── install-playwright-cli-browsers.sh
 │   ├── link-cli.sh            # Links playwright/playwright-cli into ~/.local/bin
@@ -752,11 +754,11 @@ npm run report
 
 ## Tag Reference
 
-Tags control selective test execution. Each test has **exactly one** tag. Apply tags to individual tests via `{ tag: '@smoke' }` -- **never** on `test.describe()` blocks. **`@functional` is forbidden.**
+Tags control selective test execution. Each test has **exactly one** tag ([No Multiple Tags](CLAUDE.md#rule-no-multiple-tags)). Apply tags to individual tests via `{ tag: '@smoke' }` -- never on `test.describe()` blocks ([No Tags on Describe](CLAUDE.md#rule-no-tags-on-describe)).
 
 ### The Single-Tag Rule
 
-A test gets exactly one tag from this set. **`@destructive` is the heaviest tag and always wins -- but only for shared/global state.** A test that mutates state other tests or users depend on (locale, permissions, roles, guest access, feature flags, global settings) is tagged **only** `@destructive`, regardless of what importance or type tag it would otherwise carry. A test that creates and cleans up **only its own isolated data** is NOT destructive -- tag it by importance (`@smoke`/`@regression`/`@api`/…).
+The rule is [No Multiple Tags](CLAUDE.md#rule-no-multiple-tags): a test gets exactly one tag from this set. **`@destructive` is the heaviest tag and always wins -- but only for shared/global state.** A test that mutates state other tests or users depend on (locale, permissions, roles, guest access, feature flags, global settings) is tagged **only** `@destructive`, regardless of what importance or type tag it would otherwise carry. A test that creates and cleans up **only its own isolated data** is NOT destructive -- tag it by importance (`@smoke`/`@regression`/`@api`/…).
 
 | Tag            | Purpose                                                                                                                               | npm Command                |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
@@ -782,7 +784,7 @@ A test gets exactly one tag from this set. **`@destructive` is the heaviest tag 
 
 **Not destructive:** a test that creates its **own** record, asserts, then deletes **only that record** in cleanup is _isolated_, not destructive. Tag it by importance and let it run in the parallel suite.
 
-**Cleanup applies to any state-mutating test.** Every test that writes persistent state -- `@destructive` shared-state tests **and** isolated own-data tests -- MUST use `test.afterEach()` or `test.afterAll()` to revert what it wrote, so subsequent tests always run against a clean environment.
+**Cleanup applies to any state-mutating test** ([State Cleanup](CLAUDE.md#rule-state-cleanup)). Both `@destructive` shared-state tests and isolated own-data tests revert what they wrote in `test.afterEach()` or `test.afterAll()`, so subsequent tests always run against a clean environment.
 
 ```typescript
 test.describe('admin data management', () => {
@@ -806,6 +808,8 @@ test.describe('admin data management', () => {
 ```
 
 ### Forbidden Tag Patterns
+
+Examples of what [No Multiple Tags](CLAUDE.md#rule-no-multiple-tags) and [No Tags on Describe](CLAUDE.md#rule-no-tags-on-describe) rule out:
 
 ```typescript
 // FORBIDDEN -- @functional is not a valid tag
@@ -945,14 +949,14 @@ export class MyPage {
 
 ### Locator Priority
 
-Use semantic locators in this order of preference:
+Use semantic locators in this order of preference ([Selectors](CLAUDE.md#rule-selectors)):
 
 1. `page.getByRole()` -- Accessibility-based (recommended)
 2. `page.getByLabel()` -- Form labels
 3. `page.getByPlaceholder()` -- Placeholder text
 4. `page.getByText()` -- Text content
 5. `page.getByTestId()` -- Test IDs (fallback)
-6. `page.locator()` -- CSS/XPath (last resort)
+6. `page.locator()` -- CSS only, as an absolute last resort. XPath is forbidden ([No XPath](CLAUDE.md#rule-no-xpath))
 
 ### Registering Page Objects
 
@@ -1040,7 +1044,7 @@ test('should return user data', { tag: '@api' }, async ({ apiRequest }) => {
 });
 ```
 
-Use the `apiRequest` fixture directly for all API work -- assertions, `beforeEach`/`afterEach`, one-off calls. Do not create separate helpers for every endpoint.
+Use the `apiRequest` fixture directly for all API work -- assertions, `beforeEach`/`afterEach`, one-off calls. Do not create separate helpers for every endpoint ([API request and helper promotion](.claude/skills/api-testing/SKILL.md#rule-helper-fixture-promotion-3plus)).
 
 ### API Request Options
 
@@ -1055,7 +1059,7 @@ Use the `apiRequest` fixture directly for all API work -- assertions, `beforeEac
 
 ### Schema Validation with Zod
 
-Define schemas in `fixtures/api/schemas/`. Zod 4 promotes string format validators to top-level APIs for better tree-shaking and clarity:
+Define schemas in `fixtures/api/schemas/` ([Strict Schemas](CLAUDE.md#rule-strict-schemas)). Zod 4 promotes string format validators to top-level APIs for better tree-shaking and clarity:
 
 ```typescript
 import { z } from 'zod';
@@ -1069,7 +1073,7 @@ export const UserResponseSchema = z.strictObject({
 export type UserResponse = z.infer<typeof UserResponseSchema>;
 ```
 
-Use schemas to validate responses:
+Use schemas to validate responses ([Response Validation](CLAUDE.md#rule-response-validation)):
 
 ```typescript
 const { body } = await apiRequest<UserResponse>({ ... });
@@ -1091,7 +1095,7 @@ test('should edit resource', async ({ createdResource, appPage }) => {
 });
 ```
 
-See `fixtures/helper/helper-fixture.ts` for the full setup/teardown pattern. Use helpers only when the same multi-step setup/teardown is duplicated across 3+ test files.
+See `fixtures/helper/helper-fixture.ts` for the full setup/teardown pattern. Promote setup/teardown to a helper fixture only when it is duplicated across 3+ test files ([Helper Fixture Promotion](.claude/skills/api-testing/SKILL.md#rule-helper-fixture-promotion-3plus)).
 
 ## Data Strategy
 
@@ -1099,9 +1103,9 @@ This framework uses a **bifurcated data strategy** to ensure both determinism an
 
 ### Static Data (`test-data/static/`)
 
-Immutable TypeScript files (`.ts` with `as const` exports) for **curated boundary and invalid data**. This data never changes, ensuring reproducible tests for edge cases. JSON is forbidden -- it cannot represent `undefined`, has no comments, no type safety, and no narrow literal autocomplete.
+Immutable TypeScript files (`.ts` with `as const` exports) for **curated boundary and invalid data**. This data never changes, ensuring reproducible tests for edge cases. JSON is forbidden ([No JSON Static Data](CLAUDE.md#rule-no-json-static-data)) -- it cannot represent `undefined`, has no comments, no type safety, and no narrow literal autocomplete.
 
-The scaffold follows a **three-tier rule** (see the `data-strategy` skill):
+The scaffold follows a **three-tier rule** ([Data Strategy](CLAUDE.md#rule-data-strategy); details in the [`data-strategy` skill](.claude/skills/data-strategy/SKILL.md)):
 
 1. **Universal type-mismatch arrays** (wrong type for any field of a given primitive type) live in `test-data/static/util/invalid-values.ts` as exported `as const` tuples (`INVALID_STRING_VALUES`, `INVALID_NUMBER_VALUES`, `INVALID_BOOLEAN_VALUES`, `INVALID_UUID_VALUES`, `INVALID_ENUM_VALUES`, `INVALID_ARRAY_VALUES`, `INVALID_OBJECT_VALUES`). Import; never redefine inline.
 2. **Domain-specific curated invalid sets** (invalid email formats, weak passwords, forbidden enum values, locale strings, etc.) live under `test-data/static/{area}/*.ts` -- this is where new static files usually go.
@@ -1243,22 +1247,23 @@ Husky automatically runs on staged files before each commit:
 
 - ESLint with auto-fix
 - Prettier formatting
-- Skill drift lints (`check:skills-drift`, `check:skills-references`) -- only when a rule tree is staged
+- Mirror build (`build:mirrors`) -- only when [`CLAUDE.md`](CLAUDE.md), `.claude/skills/`, the build script or `skills-lock.json` is staged; regenerates the Cursor and Copilot trees and stages them in the same commit
+- Skill link check (`check:skills-references`) -- when a rule tree, one of the four root docs, the ESLint config or a top-level gate script is staged
 - Version drift lint (`check:version`) -- only when `VERSION`, `package.json`, or `CHANGELOG.md` is staged
 
 ### Constitution Enforcement Hook
 
 `.claude/scripts/enforce_constitution.py` is registered as a Claude Code `PreToolUse` hook in `.claude/settings.json` (matcher `Write|Edit|MultiEdit`). It is the deterministic backstop beneath the prompt-level Constitution: it reads the pending tool call on stdin and **blocks** (exit 2, message fed back to the agent) any write that would introduce a mechanically-detectable WON'T violation:
 
-| Blocked                                        | Rule                                                  |
-| ---------------------------------------------- | ----------------------------------------------------- |
-| `@playwright/test` import in a spec/setup file | Imports must come from `fixtures/pom/test-options.ts` |
-| `waitForTimeout(` in any `.ts`                 | No hard waits                                         |
-| `z.object(` in a schema file                   | Schemas must use `z.strictObject()`                   |
-| XPath selector in `pages/**` or `tests/**`     | No XPath                                              |
-| `.json` under `test-data/static/`              | Static data must be `.ts` `as const`                  |
-| `@functional` tag in a spec                    | Single-tag rule (six canonical tags only)             |
-| Tag inside `test.describe()`                   | Tags on individual tests only                         |
+| Blocked                                        | Rule                                                      |
+| ---------------------------------------------- | --------------------------------------------------------- |
+| `@playwright/test` import in a spec/setup file | [Imports](CLAUDE.md#rule-imports)                         |
+| `waitForTimeout(` in any `.ts`                 | [No Hard Waits](CLAUDE.md#rule-no-hard-waits)             |
+| `z.object(` in a schema file                   | [No Loose Schemas](CLAUDE.md#rule-no-loose-schemas)       |
+| XPath selector in `pages/**` or `tests/**`     | [No XPath](CLAUDE.md#rule-no-xpath)                       |
+| `.json` under `test-data/static/`              | [No JSON Static Data](CLAUDE.md#rule-no-json-static-data) |
+| `@functional` tag in a spec                    | [No Multiple Tags](CLAUDE.md#rule-no-multiple-tags)       |
+| Tag inside `test.describe()`                   | [No Tags on Describe](CLAUDE.md#rule-no-tags-on-describe) |
 
 Malformed payloads and non-target files always pass -- the hook never blocks on its own infrastructure errors.
 
@@ -1282,56 +1287,46 @@ npm run check:version
 
 ### TypeScript
 
-| Rule             | Description                                           |
-| ---------------- | ----------------------------------------------------- |
-| Type annotations | Always specify types for parameters and return values |
-| Avoid `any`      | Use proper types or `unknown`                         |
-| Strict mode      | Enabled in tsconfig.json                              |
-| ESNext features  | Optional chaining, nullish coalescing                 |
+| Rule             | Description                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Type annotations | [Explicit Return Types](.claude/skills/type-safety/SKILL.md#rule-explicit-return-types): always specify types for parameters and return values |
+| Avoid `any`      | [No `any`](CLAUDE.md#rule-no-any): use proper types or `unknown`                                                                               |
+| Strict mode      | Enabled in tsconfig.json                                                                                                                       |
+| ESNext features  | Optional chaining, nullish coalescing                                                                                                          |
 
 ### Naming Conventions
 
-| Type             | Convention                 | Example                         |
-| ---------------- | -------------------------- | ------------------------------- |
-| Variables        | camelCase                  | `userName`                      |
-| Functions        | camelCase                  | `getUserData()`                 |
-| Classes          | PascalCase                 | `AppPage`                       |
-| Interfaces/Types | PascalCase                 | `UserResponse`                  |
-| Enums            | PascalCase                 | `Roles`                         |
-| Enum values      | SCREAMING_SNAKE            | `ADMIN`                         |
-| Files            | kebab-case or dot notation | `user-schema.ts`, `app.page.ts` |
+| Type             | Convention                                                                 | Example                         |
+| ---------------- | -------------------------------------------------------------------------- | ------------------------------- |
+| Variables        | camelCase                                                                  | `userName`                      |
+| Functions        | camelCase                                                                  | `getUserData()`                 |
+| Classes          | PascalCase                                                                 | `AppPage`                       |
+| Interfaces/Types | PascalCase                                                                 | `UserResponse`                  |
+| Enums            | PascalCase ([Enum Naming](.claude/skills/enums/SKILL.md#rule-enum-naming)) | `Roles`                         |
+| Enum values      | SCREAMING_SNAKE                                                            | `ADMIN`                         |
+| Files            | kebab-case or dot notation                                                 | `user-schema.ts`, `app.page.ts` |
 
 ### File Naming Conventions
 
-| Type             | Directory                   | Pattern               | Example                   |
-| ---------------- | --------------------------- | --------------------- | ------------------------- |
-| Page objects     | `pages/app/`                | `[name].page.ts`      | `login.page.ts`           |
-| Components       | `pages/components/`         | `[name].component.ts` | `navigation.component.ts` |
-| Functional tests | `tests/app/functional/`     | `[name].spec.ts`      | `login.spec.ts`           |
-| API tests        | `tests/app/api/`            | `[name].spec.ts`      | `login.spec.ts`           |
-| E2E tests        | `tests/app/e2e/`            | `[name].spec.ts`      | `checkout.spec.ts`        |
-| Setup files      | `tests/app/`                | `[name].setup.ts`     | `auth.setup.ts`           |
-| Data factories   | `test-data/factories/app/`  | `[name].factory.ts`   | `user.factory.ts`         |
-| Static data      | `test-data/static/app/`     | `[name].ts`           | `invalidCredentials.ts`   |
-| Zod schemas      | `fixtures/api/schemas/app/` | `[name]Schema.ts`     | `userSchema.ts`           |
+File and directory names follow the [File Naming Conventions](CLAUDE.md#rule-file-naming) table. `{area}` stands for the app-specific folder name; resolve it with `ls` first ([`{area}` is a placeholder](CLAUDE.md#rule-area-placeholder)).
 
 ### Page Object Guidelines
 
-1. **Locators as Getters** -- Use `get` accessors for all locators
-2. **Semantic Locators** -- Prefer `getByRole`, `getByLabel` over CSS/XPath
-3. **Three Locator Sections** -- Every page object should have: interactive element locators, feedback/validation message locators, and action methods
+1. **Locators as Getters** -- Use `get` accessors for all locators ([Locators as Getters](.claude/skills/page-objects/SKILL.md#rule-locators-as-getters))
+2. **Semantic Locators** -- Prefer `getByRole`, `getByLabel` over CSS ([Selectors](CLAUDE.md#rule-selectors)). Never XPath ([No XPath](CLAUDE.md#rule-no-xpath))
+3. **Three Locator Sections** -- Every page object should have: interactive element locators, feedback/validation message locators, and action methods ([No Feedback-Less POM](CLAUDE.md#rule-no-feedback-less-pom))
 4. **Action Methods** -- Methods should represent complete user flows
-5. **JSDoc on Actions Only** -- Add JSDoc with `@param` and `@returns` to action methods only. Never add JSDoc to locator getters.
+5. **JSDoc on Actions Only** -- Add JSDoc with `@param` and `@returns` to action methods only ([JSDoc on Actions](CLAUDE.md#rule-jsdoc-on-actions)). Never add JSDoc to locator getters ([No JSDoc on Locators](CLAUDE.md#rule-no-jsdoc-on-locators)).
 
 ### Test Guidelines
 
 1. **Descriptive Names** -- Test names should describe expected behavior
-2. **Test Tags** -- Use importance tags (`@smoke`, `@sanity`, `@regression`), type tags (`@e2e`, `@api`), and `@destructive` for tests that modify shared/global state (see [Tag Reference](#tag-reference))
-3. **Tags on Tests Only** -- Apply tags to individual tests via `{ tag: '@...' }`, never on `test.describe()` blocks
-4. **Test Steps** -- Use `test.step()` with Given/When/Then for readability
-5. **Independence** -- Tests should be independent and not rely on other tests
-6. **Web-first Assertions** -- Use `toBeVisible`, `toHaveText`, etc.
-7. **No Hardcoded Timeouts** -- Rely on Playwright's auto-waiting
+2. **Test Tags** -- Use importance tags (`@smoke`, `@sanity`, `@regression`), type tags (`@e2e`, `@api`), and `@destructive` for tests that modify shared/global state (see [Tag Reference](#tag-reference) and [No Multiple Tags](CLAUDE.md#rule-no-multiple-tags))
+3. **Tags on Tests Only** -- Apply tags to individual tests via `{ tag: '@...' }`, never on `test.describe()` blocks ([No Tags on Describe](CLAUDE.md#rule-no-tags-on-describe))
+4. **Test Steps** -- Use `test.step()` with Given/When/Then for readability ([Test Steps](CLAUDE.md#rule-test-steps))
+5. **Independence** -- Tests should be independent and not rely on other tests ([Test Isolation](CLAUDE.md#rule-test-isolation))
+6. **Web-first Assertions** -- Use `toBeVisible`, `toHaveText`, etc. ([Assertions](CLAUDE.md#rule-assertions))
+7. **No Hardcoded Timeouts** -- Rely on Playwright's auto-waiting ([No Hard Waits](CLAUDE.md#rule-no-hard-waits))
 
 ---
 
@@ -1339,52 +1334,13 @@ npm run check:version
 
 This repository follows a strict architecture designed for **deterministic Playwright testing** and **AI-assisted development**. All code (human or AI-generated) **MUST** adhere to these rules.
 
-### MUST (Mandatory)
+### The rules
 
-| Rule                        | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Dependency Injection**    | ALWAYS use custom fixtures from `fixtures/pom/test-options.ts`. NEVER instantiate page objects manually (e.g., `new LoginPage(page)` is FORBIDDEN in test files).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Imports**                 | ALWAYS import `test` and `expect` from `fixtures/pom/test-options.ts`. NEVER import directly from `@playwright/test` in spec files.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **Selectors**               | Prioritize semantic locators: `getByRole()`, `getByLabel()`, `getByPlaceholder()`, `getByText()`. Use `getByTestId()` as fallback.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| **Type Safety**             | Strictly enforce TypeScript. All data types must be defined using Zod schemas in `fixtures/api/schemas/`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| **Strict Schemas**          | Always use `z.strictObject()` for API schemas -- rejects unknown keys instead of silently stripping them.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| **Response Validation**     | Assert API responses with the exact pattern `expect(SchemaName.parse(body)).toBeTruthy();`. Type generics or a bare `Schema.parse(body)` are insufficient.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Sources of Truth**        | URLs and credentials come from `process.env.*` (declared in `env/.env.example`). Endpoint paths, route constants, UI message strings, and storage-state paths come from `enums/{area}/*` and `enums/util/*`. Never hardcode.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| **Assertions**              | Use explicit web-first assertions (e.g., `expect(locator).toBeVisible()`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Linting**                 | Code must pass ESLint and Prettier standards without warnings.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **Data Strategy**           | Universal invalid arrays in `test-data/static/util/invalid-values.ts`. Domain-specific curated sets in `test-data/static/{area}/*.ts`. Dynamic happy-path data in `test-data/factories/{area}/`. See [Tag Reference](#tag-reference) and the `data-strategy` skill.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| **State Cleanup**           | **Any** test that mutates persistent state MUST include `afterEach`/`afterAll` hooks that revert it -- both `@destructive` shared-state tests and ordinary tests that create their own data. See [Tag Reference](#tag-reference).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **Test Verification**       | After adding or modifying test files, run the affected tests with `npx playwright test [file]` and confirm all pass. Do not mark the task complete with failing tests.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **Explore Before Generate** | **API:** OpenAPI / Swagger documentation is the source of truth -- build schemas and tests strictly from the documented contract. **Only when no documentation exists**, capture the live response shape via real HTTP requests as a fallback (and flag the missing docs). Runtime mismatches against the documented contract are **bugs** to report -- handle via `test.skip` + `// FIXME:` (see "No Silent Coverage Drops"); never loosen the schema. **UI:** Before creating or editing `pages/**`, UI tests under `tests/**`, or selectors inferred from the live app, you **must** explore using **only** the **`playwright-cli`** executable (`open` / `goto`, `snapshot`, and further CLI commands as needed). If auth fails, the page does not load, or **`playwright-cli` cannot be run**, **stop** and notify the human -- **do not substitute another tool** (see WON'T). |
+The rules live in one place: the Constitution tables in [`CLAUDE.md`](CLAUDE.md#constitution-quick-reference). Each rule below links to its row.
 
-### SHOULD (Recommended)
-
-| Rule                | Description                                                                                     |
-| ------------------- | ----------------------------------------------------------------------------------------------- |
-| **Data Generation** | Use Faker via factories in `test-data/factories/` for happy-path data to ensure test isolation. |
-| **Test Isolation**  | Tests should be independent. Use `test.beforeEach` for setup, not shared state between tests.   |
-| **Test Steps**      | Use `test.step()` with Given/When/Then structure for better readability and reporting.          |
-| **Comments**        | Add JSDoc comments to all public methods explaining parameters and return values.               |
-| **Enums**           | Use enums from `enums/` for repeated string values (roles, routes, messages).                   |
-
-### WON'T (Forbidden)
-
-| Rule                             | Description                                                                                                                                                                                                                                                                                                                                                                                                              |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **No XPath**                     | NEVER use XPath selectors. They are brittle and unreadable.                                                                                                                                                                                                                                                                                                                                                              |
-| **No Hard Waits**                | NEVER use `page.waitForTimeout()`. Use web-first assertions (e.g., `await expect(locator).toBeVisible()`).                                                                                                                                                                                                                                                                                                               |
-| **No Magic Numbers**             | Define timeouts and constants in `config/` or `enums/`.                                                                                                                                                                                                                                                                                                                                                                  |
-| **No `any` Type**                | Avoid `any` type in TypeScript. Use strictly typed interfaces or Zod schemas.                                                                                                                                                                                                                                                                                                                                            |
-| **No Manual Instantiation**      | NEVER create page objects with `new PageObject(page)` inside test files. Use fixtures.                                                                                                                                                                                                                                                                                                                                   |
-| **No Hardcoded Secrets**         | NEVER commit credentials, API keys, or environment-specific URLs. Use `process.env`.                                                                                                                                                                                                                                                                                                                                     |
-| **No Tags on Describe**          | NEVER put tags in `test.describe()`. Apply tags only to individual tests via `{ tag: '@...' }`.                                                                                                                                                                                                                                                                                                                          |
-| **No Multiple Tags**             | Each test has exactly ONE tag from `@smoke`, `@sanity`, `@regression`, `@e2e`, `@api`, `@destructive`. `@functional` is forbidden. **`@destructive` is the heaviest tag and always wins -- but only for shared/global state** (locale, permissions, roles, guest access, feature flags, global settings); a test that creates and cleans up only its own data keeps its importance tag. Never combined with another tag. |
-| **No Loose Schemas**             | NEVER use `z.object()` for API schemas. Use `z.strictObject()` to catch unexpected fields.                                                                                                                                                                                                                                                                                                                               |
-| **No JSON Static Data**          | Files under `test-data/static/**` must be TypeScript (`.ts` with `as const` exports). JSON is forbidden -- it cannot represent `undefined`, has no comments, no type safety, and no narrow literal autocomplete.                                                                                                                                                                                                         |
-| **No Empty-Body-Only 400**       | NEVER test 400 responses with only an empty body. Every field must have per-field omission and invalid-type `for...of` loop tests.                                                                                                                                                                                                                                                                                       |
-| **No Feedback-Less POM**         | NEVER create page objects for forms or CRUD pages without selectors for success, error, and validation messages.                                                                                                                                                                                                                                                                                                         |
-| **No Substitute UI Exploration** | NEVER use IDE browser MCP, Cursor browser tools, Playwright Test `codegen`, or any browser automation other than `playwright-cli` to satisfy Explore Before Generate. If `playwright-cli` is unavailable, stop and notify the human.                                                                                                                                                                                     |
-| **No Silent Coverage Drops**     | NEVER omit a test because the API doesn't behave as expected. Use `test.skip` with `// FIXME` comment instead. Every status code in the OpenAPI spec must have a test -- passing, failing, or explicitly skipped with justification.                                                                                                                                                                                     |
+- **MUST (mandatory):** [Dependency Injection](CLAUDE.md#rule-dependency-injection), [Imports](CLAUDE.md#rule-imports), [Selectors](CLAUDE.md#rule-selectors), [Type Safety](CLAUDE.md#rule-type-safety), [Strict Schemas](CLAUDE.md#rule-strict-schemas), [Response Validation](CLAUDE.md#rule-response-validation), [Sources of Truth](CLAUDE.md#rule-sources-of-truth), [Assertions](CLAUDE.md#rule-assertions), [Linting](CLAUDE.md#rule-linting), [Data Strategy](CLAUDE.md#rule-data-strategy), [State Cleanup](CLAUDE.md#rule-state-cleanup), [API Test Steps](CLAUDE.md#rule-api-test-steps), [Test Verification](CLAUDE.md#rule-test-verification), [Explore Before Generate](CLAUDE.md#rule-explore-before-generate).
+- **SHOULD (recommended):** [Data Generation](CLAUDE.md#rule-data-generation), [Test Isolation](CLAUDE.md#rule-test-isolation), [Test Steps](CLAUDE.md#rule-test-steps), [JSDoc on Actions](CLAUDE.md#rule-jsdoc-on-actions), [Enums for Strings](CLAUDE.md#rule-enums-for-strings).
+- **WON'T (forbidden):** [No XPath](CLAUDE.md#rule-no-xpath), [No Hard Waits](CLAUDE.md#rule-no-hard-waits), [No Secrets](CLAUDE.md#rule-no-secrets), [No `any`](CLAUDE.md#rule-no-any), [No Tags on Describe](CLAUDE.md#rule-no-tags-on-describe), [No Multiple Tags](CLAUDE.md#rule-no-multiple-tags), [No Magic Numbers](CLAUDE.md#rule-no-magic-numbers), [No Manual Instantiation](CLAUDE.md#rule-no-manual-instantiation), [No Loose Schemas](CLAUDE.md#rule-no-loose-schemas), [No JSDoc on Locators](CLAUDE.md#rule-no-jsdoc-on-locators), [No Hardcoded Test Content](CLAUDE.md#rule-no-hardcoded-test-content), [No Explore-Only Files](CLAUDE.md#rule-no-explore-only-files), [No Empty-Body-Only 400](CLAUDE.md#rule-no-empty-body-only-400), [No Feedback-Less POM](CLAUDE.md#rule-no-feedback-less-pom), [No Substitute UI Exploration](CLAUDE.md#rule-no-substitute-ui-exploration), [No Silent Coverage Drops](CLAUDE.md#rule-no-silent-coverage-drops), [No JSON Static Data](CLAUDE.md#rule-no-json-static-data).
 
 ---
 
@@ -1410,13 +1366,13 @@ This framework is optimized for AI-assisted test development. Follow this workfl
 
 ### Step-by-Step Best Practices
 
-| Step                         | Action                                                                                                                                  | Why It Matters                                                                  |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **1. One Task Per Prompt**   | Focus each prompt on a single, well-defined task (one page object, one test file, one schema)                                           | Smaller changes are easier to review, test, and revert if needed                |
-| **2. Review Generated Code** | Read through the AI-generated code before running it. Check for selector accuracy, proper patterns, and adherence to Constitution rules | Catch issues early before they propagate to dependent code                      |
-| **3. Verify Tests Pass**     | Run the generated tests: `npm test` or specific test commands. Ensure they pass consistently                                            | A failing test committed now becomes technical debt later                       |
-| **4. Commit Working Code**   | Once verified, commit immediately with a descriptive message                                                                            | Creates a safe checkpoint. Future prompts cannot break what's already committed |
-| **5. Proceed to Next Task**  | Only after committing, move to the next prompt                                                                                          | Builds incrementally on verified, working code                                  |
+| Step                         | Action                                                                                                                                                                                | Why It Matters                                                                  |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **1. One Task Per Prompt**   | Focus each prompt on a single, well-defined task (one page object, one test file, one schema)                                                                                         | Smaller changes are easier to review, test, and revert if needed                |
+| **2. Review Generated Code** | Read through the AI-generated code before running it. Check for selector accuracy, proper patterns, and adherence to the [Constitution rules](CLAUDE.md#constitution-quick-reference) | Catch issues early before they propagate to dependent code                      |
+| **3. Verify Tests Pass**     | Run the generated tests: `npm test` or specific test commands. Ensure they pass consistently                                                                                          | A failing test committed now becomes technical debt later                       |
+| **4. Commit Working Code**   | Once verified, commit immediately with a descriptive message                                                                                                                          | Creates a safe checkpoint. Future prompts cannot break what's already committed |
+| **5. Proceed to Next Task**  | Only after committing, move to the next prompt                                                                                                                                        | Builds incrementally on verified, working code                                  |
 
 ### Why This Workflow?
 
@@ -1478,25 +1434,25 @@ This project uses a **modular orchestrator + skills pattern** for AI-assisted de
 ### How It Works
 
 - **Orchestrator** -- Always loaded. Contains the Constitution quick reference, AI workflow, and an index of all skills. Each tool has its own copy:
-    - `CLAUDE.md` (project root) -- Automatically loaded by Claude Code
-    - `.cursor/rules/rules.mdc` -- Automatically loaded by Cursor (`alwaysApply: true`)
-    - `.github/copilot-instructions.md` -- Automatically loaded by GitHub Copilot
+    - [`CLAUDE.md`](CLAUDE.md) (project root) -- Automatically loaded by Claude Code
+    - [`.cursor/rules/rules.mdc`](.cursor/rules/rules.mdc) -- Automatically loaded by Cursor (`alwaysApply: true`)
+    - [`.github/copilot-instructions.md`](.github/copilot-instructions.md) -- Automatically loaded by GitHub Copilot
 - **Skills / Instructions** -- Detailed rules, patterns, and examples for specific areas. Each skill covers one concern in depth. Located per tool:
     - `.claude/skills/*/SKILL.md` -- Claude Code skills (read on demand by the AI based on the orchestrator's Skills Index)
     - `.cursor/skills/*/SKILL.md` -- Cursor skills (mirror of Claude Code skills)
     - `.github/instructions/*.instructions.md` -- Copilot instructions (auto-injected when editing files matching the `applyTo` glob pattern)
-- **Common tasks** (`.claude/skills/common-tasks/SKILL.md`) -- Prompt templates, anti-patterns checklist, and verification checklist for code generation.
+- **Common tasks** ([`.claude/skills/common-tasks/SKILL.md`](.claude/skills/common-tasks/SKILL.md)) -- Prompt templates, anti-patterns checklist, and verification checklist for code generation.
 
-> **Self-contained trees.** Each tool's rule tree (`.claude/`, `.cursor/`, `.github/instructions/`) stands alone — no cross-tree references in user-facing prose. When you edit a rule, edit it in all three trees in the same PR; the `npm run check:skills-drift` and `npm run check:skills-references` lints gate `.claude/skills/` only, so per-tree mirror parity is a hand-maintained discipline.
+> **Self-contained trees.** Each tool's rule tree (`.claude/`, `.cursor/`, `.github/instructions/`) stands alone — no cross-tree references in user-facing prose. The Cursor and Copilot trees are generated from [`CLAUDE.md`](CLAUDE.md) and `.claude/skills/` (`npm run build:mirrors`); how to edit the trees is in [Editing the Rule Trees](CLAUDE.md#editing-the-rule-trees) and, for contributors to this repository, [CONTRIBUTING.md](https://github.com/idavidov13/agentic-playwright/blob/main/CONTRIBUTING.md).
 
 ### Tool Comparison
 
-| Feature             | Claude Code                      | Cursor                           | GitHub Copilot                    |
-| ------------------- | -------------------------------- | -------------------------------- | --------------------------------- |
-| Orchestrator        | `CLAUDE.md`                      | `.cursor/rules/rules.mdc`        | `.github/copilot-instructions.md` |
-| Skill activation    | On demand (AI reads when needed) | On demand (AI reads when needed) | Automatic (`applyTo` glob match)  |
-| Skill location      | `.claude/skills/`                | `.cursor/skills/`                | `.github/instructions/`           |
-| Browser exploration | `playwright-cli`                 | `playwright-cli`                 | Scoped instructions only          |
+| Feature             | Claude Code                      | Cursor                                               | GitHub Copilot                                                       |
+| ------------------- | -------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------- |
+| Orchestrator        | [`CLAUDE.md`](CLAUDE.md)         | [`.cursor/rules/rules.mdc`](.cursor/rules/rules.mdc) | [`.github/copilot-instructions.md`](.github/copilot-instructions.md) |
+| Skill activation    | On demand (AI reads when needed) | On demand (AI reads when needed)                     | Automatic (`applyTo` glob match)                                     |
+| Skill location      | `.claude/skills/`                | `.cursor/skills/`                                    | `.github/instructions/`                                              |
+| Browser exploration | `playwright-cli`                 | `playwright-cli`                                     | Scoped instructions only                                             |
 
 ### Skills Index
 
@@ -1516,7 +1472,7 @@ This project uses a **modular orchestrator + skills pattern** for AI-assisted de
 | `common-tasks`       | Code generation tasks                                                                                                                        | Prompt templates, anti-patterns checklist, verification checklist                                                                                                                                                                                                                                                        |
 | `refactor-values`    | Changing enum values, enum keys, or `test-data/static/` values                                                                               | Impact analysis, cascading updates, TypeScript verification workflow                                                                                                                                                                                                                                                     |
 | `debugging`          | Whenever a test fails or behaves unexpectedly                                                                                                | Failure-mode taxonomy, capture defaults (trace / screenshot / video), UI Mode / Trace Viewer / Inspector / report tools, `npx playwright trace` (1.59+), `--debug=cli` (1.59+), CI-only-failure replay workflow                                                                                                          |
-| `ai-native-workflow` | **Sole entry point for non-trivial work.** Onboarding, "how should I work with AI here?", "which skill for X?", planning a multi-step change | 8-phase main workflow (classify → route → explore → plan+confidence → human gate → apply → verify → report), Phase 4 confidence-gate format (1-10 + Rationale + Unknowns; `<5 → ASK`), skill-routing matrix                                                                                                              |
+| `ai-native-workflow` | **Sole entry point for non-trivial work.** Onboarding, "how should I work with AI here?", "which skill for X?", planning a multi-step change | 8-phase main workflow (classify → route → explore → plan+confidence → human gate → apply → verify → report), [Phase 4 confidence-gate format](.claude/skills/ai-native-workflow/SKILL.md#phase-4--confidence-gate-format-mandatory), skill-routing matrix                                                                |
 | `skill-creator`      | Creating or improving agent skills                                                                                                           | Draft skills, eval loops, benchmarks, description optimization, packaging                                                                                                                                                                                                                                                |
 | `pr-reviewer`        | Reviewing a branch as a PR against the base branch (user names a branch + review intent)                                                     | Fetch + switch + three-dot diff, route changed paths to applicable skills, verify (eslint/prettier/tsc + attempt tests), tiered report + confidence, optional gated fix + commit. **Claude + Cursor** skill trees; Copilot exposes it as a `/pr-reviewer` prompt (`.github/prompts/`), no `.github/instructions/` mirror |
 

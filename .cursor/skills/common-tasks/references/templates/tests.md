@@ -2,7 +2,7 @@
 
 Prompt templates for functional, E2E, data-driven, and API tests. The `test-standards`, `data-strategy`, and `api-testing` skills own the deep rules. Resolve `{area}` with `ls tests/` first.
 
-> **Important:** Before generating tests, navigate through the user flow to understand the actual steps and expected outcomes.
+> **Important:** [Explore Before Generate](../../../../rules/rules.mdc#rule-explore-before-generate) and [No Substitute UI Exploration](../../../../rules/rules.mdc#rule-no-substitute-ui-exploration) apply: before generating UI tests, explore the user flow with `playwright-cli` (see the `playwright-cli` skill) to capture the actual steps, selectors, and expected outcomes.
 
 ## Create a Functional Test
 
@@ -93,5 +93,5 @@ Requirements:
 - For endpoints with path params: invalid format data-driven loop (numeric, boolean-like, special chars, SQL injection)
 - For endpoints with auth: 401 (no token) and 403 (wrong role) tests
 - For all endpoints: at least one 405 test with unsupported HTTP method
-- Any test that would fail due to API bug: test.skip + /* eslint-disable playwright/no-skipped-test */ + // FIXME: <ticket-url>, never omit
+- Any test that would fail due to API bug: test.skip + // FIXME: <ticket-url> + // eslint-disable-next-line playwright/no-skipped-test (directly above the skip), never omit
 ```

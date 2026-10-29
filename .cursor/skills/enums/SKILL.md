@@ -8,18 +8,18 @@ author: Ivan Davidov
 
 ## Critical
 
-- **Convention: TypeScript `enum`** — the scaffold uses the language construct `enum`, not `as const` object literals. Stay consistent.
-- **Enum name:** PascalCase (e.g., `Messages`, `ApiEndpoints`, `Roles`, `StorageStatePaths`).
+- <a id="rule-enum-keyword-not-as-const"></a>**Convention: TypeScript `enum`** — the scaffold uses the language construct `enum`, not `as const` object literals. Stay consistent.
+- <a id="rule-enum-naming"></a>**Enum name:** PascalCase (e.g., `Messages`, `ApiEndpoints`, `Roles`, `StorageStatePaths`).
 - **Enum member:** SCREAMING_SNAKE_CASE (e.g., `LOGIN_SUCCESS`, `CURRENT_USER`, `APP`).
-- **Location:** app-defined strings go in `enums/{area}/*.ts`; cross-app constants go in `enums/util/*.ts`. Do not invent a new top-level folder.
-- **JSDoc:** every enum declaration must have a JSDoc comment describing what the enum groups.
-- **No hardcoded repeat strings.** Any string used in more than one place — endpoint paths, UI messages, roles, storage-state paths — must live in an enum and be imported.
-- **Message values must match the real app.** For enums that mirror UI text (error messages, success messages, validation text), the string must be captured via `playwright-cli` from the live app, not guessed.
-- **Edits to existing enum values go through `refactor-values`.** Renaming a key or changing a value cascades through tests, page objects, and schemas.
+- <a id="rule-enum-jsdoc"></a>**JSDoc:** every enum declaration must have a JSDoc comment describing what the enum groups.
+- <a id="rule-enum-values-verified-against-live-app"></a><a id="rule-verify-ui-strings"></a>**Message values must match the real app.** For enums that mirror UI text (error messages, success messages, validation text), the string must be captured via `playwright-cli` from the live app, not guessed.
+- **Location:** do not invent a new top-level folder; app-defined versus cross-app placement follows [Sources of Truth](../../rules/rules.mdc#rule-sources-of-truth).
+- **Edits to existing enum values** follow [Refactor Impact First](../refactor-values/SKILL.md#rule-refactor-impact-first). Renaming a key or changing a value cascades through tests, page objects, and schemas.
+- **Constitution rules that apply here:** [Enums for Strings](../../rules/rules.mdc#rule-enums-for-strings), [Sources of Truth](../../rules/rules.mdc#rule-sources-of-truth), [Explore Before Generate](../../rules/rules.mdc#rule-explore-before-generate).
 
 ## File Locations
 
-> **`{area}` is a placeholder.** Before creating or referencing any path below, run `ls enums/` to discover the real subdirectory names in this repo (e.g., `front-office`, `back-office`) and use those instead.
+> `{area}` is a placeholder; see [Area Placeholder](../../rules/rules.mdc#rule-area-placeholder).
 
 | Type                   | Directory       | Naming      | Scaffold examples                                                       |
 | ---------------------- | --------------- | ----------- | ----------------------------------------------------------------------- |
@@ -84,7 +84,7 @@ When the enum mirrors UI text (error messages, success messages, validation text
 
 Workflow:
 
-1. Read the `playwright-cli` skill (`.cursor/skills/playwright-cli/SKILL.md`).
+1. Read the `playwright-cli` skill ([`.cursor/skills/playwright-cli/SKILL.md`](../playwright-cli/SKILL.md)).
 2. Run `playwright-cli` to trigger the relevant action in the app.
 3. Capture the exact rendered text (case, punctuation, whitespace).
 4. Encode it as the enum value.
@@ -109,7 +109,7 @@ Re-use the pattern from `enums/app/app.ts`. The file itself may also carry a top
 
 When you need to change an enum member's string value or rename a member key, the change cascades through tests, page objects, API schemas, and data-driven loops.
 
-**Read the `refactor-values` skill** (`.cursor/skills/refactor-values/SKILL.md`) **before** touching an existing enum. It owns the impact-analysis and cascading-update workflow.
+Follow [Refactor Impact First](../refactor-values/SKILL.md#rule-refactor-impact-first) **before** touching an existing enum; the [refactor-values](../refactor-values/SKILL.md) skill owns the impact-analysis and cascading-update workflow.
 
 ## Examples
 
@@ -151,7 +151,7 @@ Actions:
 ## Troubleshooting
 
 **I'm about to hardcode `/api/users/login` in a test.**
-Fix: Use `ApiEndpoints.LOGIN` from `enums/app/app.ts`. Any endpoint path used in more than one place must come from an enum.
+Fix: Use `ApiEndpoints.LOGIN` from `enums/app/app.ts`. See [Enums for Strings](../../rules/rules.mdc#rule-enums-for-strings).
 
 **I'm about to hardcode an error message like `'Invalid credentials'` in an assertion.**
 Fix: Use `Messages.*` from `enums/app/app.ts`. Verify the exact text via `playwright-cli` first (Phase 4); add a new member if needed.
@@ -160,7 +160,7 @@ Fix: Use `Messages.*` from `enums/app/app.ts`. Verify the exact text via `playwr
 Fix: Re-run `playwright-cli` to capture the actual rendered string (case, punctuation, whitespace). Update via the `refactor-values` workflow — do not fix it with a local find-and-replace that misses other consumers.
 
 **I need to rename an enum member (e.g., `LOGIN_FAILED` → `LOGIN_REJECTED`).**
-Fix: Stop. Read the `refactor-values` skill first. Use its impact-analysis workflow to find every consumer before renaming.
+Fix: Stop. Follow [Refactor Impact First](../refactor-values/SKILL.md#rule-refactor-impact-first). Use its impact-analysis workflow to find every consumer before renaming.
 
 **My new value is an array (e.g., `[...invalid emails]`).**
 Fix: That's not an enum — enums are named string constants, not collections of data. Put it in `test-data/static/{area}/*.ts` as an `as const` export (see the `data-strategy` skill).

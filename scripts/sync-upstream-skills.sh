@@ -9,12 +9,11 @@
 #                exit non-zero if any hash diverges from `skills-lock.json`.
 #                Detects local tampering between deliberate updates.
 #
-#   reinstall -- Fetch each upstream SKILL.md, overwrite the vendored copies
-#                in .claude/skills/<name>/SKILL.md and .cursor/skills/<name>/SKILL.md,
-#                and refresh the corresponding hash in `skills-lock.json`. The
-#                Copilot mirror at .github/instructions/<name>.instructions.md is
-#                NOT touched -- it carries Copilot-specific frontmatter and
-#                is hand-maintained per the v2.1 self-contained-trees policy.
+#   reinstall -- Fetch each upstream SKILL.md, overwrite the canonical copy
+#                in .claude/skills/<name>/SKILL.md, refresh the corresponding
+#                hash in `skills-lock.json`, then regenerate the Cursor and
+#                Copilot mirrors with scripts/build-mirrors.mjs. The hand-kept
+#                folder-form copy in .github/skills/ is NOT touched.
 #
 #   update    -- Re-hash the local files (without fetching upstream) and write
 #                the new hashes into `skills-lock.json`. Use when intentional
@@ -122,10 +121,9 @@ fetch_upstream() {
 errors=0
 processed=0
 
-# .claude is the canonical tree; .cursor mirrors it byte-for-byte. Copilot is hand-maintained.
+# .claude is the canonical tree; the Cursor and Copilot mirrors are rebuilt from it.
 LOCAL_TREES=(
     "${REPO_ROOT}/.claude/skills"
-    "${REPO_ROOT}/.cursor/skills"
 )
 
 while IFS=$'\t' read -r name source_type source ref skill_path expected_hash; do
@@ -185,6 +183,10 @@ while IFS=$'\t' read -r name source_type source ref skill_path expected_hash; do
             ;;
     esac
 done < <(list_skills)
+
+if [[ "$MODE" == "reinstall" ]]; then
+    node "${REPO_ROOT}/scripts/build-mirrors.mjs" "${REPO_ROOT}" || errors=$((errors + 1))
+fi
 
 echo
 echo "Mode: ${MODE}; Processed ${processed} skill(s); ${errors} issue(s)."

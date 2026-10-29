@@ -6,7 +6,7 @@ author: Ivan Davidov
 
 # PR Reviewer
 
-Review a branch the way a careful human reviewer on this team would: against **this repo's own contract**, not generic best practice. The contract is `CLAUDE.md` (the Constitution — MUST / SHOULD / WON'T tables) plus the specialized `.claude/skills/` that govern whatever the branch actually touched. A finding only counts if you can tie it to a concrete rule, a real bug, or a coverage gap — opinion without a rule behind it is noise.
+Review a branch the way a careful human reviewer on this team would: against **this repo's own contract**, not generic best practice. The contract is [`CLAUDE.md`](../../../CLAUDE.md) (the Constitution — MUST / SHOULD / WON'T tables) plus the specialized `.claude/skills/` that govern whatever the branch actually touched. <a id="rule-finding-needs-rule"></a>A finding only counts if you can tie it to a concrete rule, a real bug, or a coverage gap — opinion without a rule behind it is noise.
 
 The deliverable is a **report**, not a code change. Fixing is a separate, opt-in step the user has to ask for after seeing the findings.
 
@@ -34,13 +34,13 @@ git fetch origin "<branch>" "$BASE"
 git switch "<branch>"      # or: git checkout <branch>
 ```
 
-- **Dirty working tree** — if `git status --porcelain` is non-empty, **stop and ask** before switching. Offer to `git stash` and restore afterward; never switch over uncommitted work silently.
+- <a id="rule-dirty-tree-ask"></a>**Dirty working tree** — if `git status --porcelain` is non-empty, **stop and ask** before switching. Offer to `git stash` and restore afterward; never switch over uncommitted work silently.
 - **Missing branch** — if the branch isn't on `origin`, report that and stop.
 - Everywhere below, `master` is shorthand for the resolved `$BASE`.
 
 ### Phase 2 — Diff against the merge-base (THREE-DOT, MANDATORY)
 
-Always diff with **three dots**. This is not a preference — a two-dot diff is a defect in the review itself:
+<a id="rule-three-dot-diff"></a>Always diff with **three dots**. This is not a preference — a two-dot diff is a defect in the review itself:
 
 ```bash
 git diff master...HEAD --stat      # overview
@@ -54,7 +54,7 @@ git diff master...HEAD             # full diff
 
 ### Phase 3 — Route to applicable skills
 
-The changed file paths decide which rules apply. This is the heart of doing it _right_ — an API branch and a UI branch are judged by different skills. Map every changed path to its skills and **read those skill files** before reviewing. Always also hold the `CLAUDE.md` Constitution.
+The changed file paths decide which rules apply. This is the heart of doing it _right_ — an API branch and a UI branch are judged by different skills. Map every changed path to its skills and **read those skill files** before reviewing. Always also hold the [Constitution](../../../CLAUDE.md).
 
 | Changed path (glob)                                         | Read these skills                                 |
 | ----------------------------------------------------------- | ------------------------------------------------- |
@@ -72,7 +72,7 @@ The changed file paths decide which rules apply. This is the heart of doing it _
 | `helpers/**`                                                | `helpers`                                         |
 | any `**/*.ts`                                               | `type-safety`                                     |
 
-If the diff touches an area not in this table, fall back to the `CLAUDE.md` skills index and pick the closest match. When unsure which skill owns a concern, load `ai-native-workflow` — it is the routing authority.
+If the diff touches an area not in this table, fall back to the [`CLAUDE.md`](../../../CLAUDE.md) skills index and pick the closest match. When unsure which skill owns a concern, load `ai-native-workflow` — it is the routing authority.
 
 ### Phase 4 — Verify (run the checks, don't just read)
 
@@ -97,7 +97,7 @@ npx tsc --noEmit 2>&1 | grep -F -f <(echo "$CHANGED") \
   || echo "no tsc errors in changed files"
 ```
 
-> **Why this matters — do not skip.** This repo ships **known pre-existing** tsc errors in unrelated files (e.g. `custodialFees.spec.ts`, `login-fixture.ts`, `expectResponseManageCustomerAccount.ts`). A wall of red from a bare `tsc --noEmit` does **not** mean the branch is broken. Only errors whose path is in `$CHANGED` are the branch's fault — everything else is repo background noise and must not become a finding. `grep -F -f` matches the exact changed paths because both `tsc` and `git diff --name-only` print repo-relative paths.
+> <a id="rule-tsc-changed-files-only"></a>**Why this matters — do not skip.** This repo ships **known pre-existing** tsc errors in unrelated files (e.g. `custodialFees.spec.ts`, `login-fixture.ts`, `expectResponseManageCustomerAccount.ts`). A wall of red from a bare `tsc --noEmit` does **not** mean the branch is broken. Only errors whose path is in `$CHANGED` are the branch's fault — everything else is repo background noise and must not become a finding. `grep -F -f` matches the exact changed paths because both `tsc` and `git diff --name-only` print repo-relative paths.
 
 Then **attempt** the affected tests. **Don't assume the project name** — it varies per repo and per area. Read the real project names from the config first, then match the changed spec's area to one:
 
@@ -113,7 +113,7 @@ npx playwright test <changed spec path> --project <project-name>
 
 > The naming scheme is **repo-specific** (often `<area>-<browser>`, e.g. `front-chromium`, but not guaranteed). Derive `<area>` from the spec path `tests/<area>/...`, then pick the config project whose name contains that area. A bare area word or the spec path alone usually won't select a project. Setup projects (commonly `<area>-setup`) run automatically as dependencies. If no project matches, run without `--project` and note it in the report.
 
-**Missing env ≠ branch defect.** API / wallet / back specs read runtime tokens (`USER_ACCESS_TOKEN_WALLET`, `PUBLIC_GATEWAY_URL`, etc.) that a `*.setup.ts` mints from real credentials. With no env file those vars are undefined and the run dies at auth/setup. That is an **environment limitation, not a branch defect** — report it verbatim as _"could not run — missing env tokens (`<var>`); run manually before merge"_ and move on. **Never** invent, hardcode, or stub a token to force a green run.
+<a id="rule-env-failure-not-branch-defect"></a>**Missing env ≠ branch defect.** API / wallet / back specs read runtime tokens (`USER_ACCESS_TOKEN_WALLET`, `PUBLIC_GATEWAY_URL`, etc.) that a `*.setup.ts` mints from real credentials. With no env file those vars are undefined and the run dies at auth/setup. That is an **environment limitation, not a branch defect** — report it verbatim as _"could not run — missing env tokens (`<var>`); run manually before merge"_ and move on. **Never** invent, hardcode, or stub a token to force a green run.
 
 ### Phase 5 — Review against the rules
 
@@ -121,9 +121,8 @@ npx playwright test <changed spec path> --project <project-name>
 
 With the routed skills + Constitution in hand, walk the diff and check, at minimum:
 
-- **MUST rules** from `CLAUDE.md` for the touched area — e.g. for API specs: `expect(Schema.parse(body)).toBeTruthy()` exactly; `z.strictObject()` not `z.object()`; **2+ API calls each in its own `test.step()`**; one tag per test; URLs/paths/messages from `config`/`enums` not hardcoded; state-mutating tests have cleanup hooks.
-- **WON'T rules** — no `any`, no XPath, no `waitForTimeout()`, no hardcoded secrets/content, no loose schemas, no tags on `describe`, no silent coverage drops (every documented status code has a test — passing, failing, or `test.skip` + `// FIXME`).
-- **Contract fidelity (STRICT).** Schemas must mirror the documented OpenAPI/Swagger contract — `z.strictObject`, exact field nullability, correct top-level validators. When the live API disagrees with the documented contract, the API is the bug, **never the schema**. Flag — as a 🔴 Must-fix — any of these schema-loosening moves, even if they make a test pass: relaxing `z.strictObject` → `z.object`; adding `.optional()`/`.nullable()`/`.passthrough()`/`.catchall()` or widening a type purely to absorb an unexpected runtime value; deleting a field the contract documents; replacing a precise validator (`z.uuid`, `z.iso.datetime`, `z.int`) with a looser one. The sanctioned response to a real mismatch is `test.skip` + `// FIXME: <ticket>` documenting the discrepancy — the schema stays faithful to the contract. A loosened schema is worse than a skipped test because it permanently hides the drift.
+- **Constitution rules** for the touched area, at minimum [Response Validation](../../../CLAUDE.md#rule-response-validation), [Strict Schemas](../../../CLAUDE.md#rule-strict-schemas), [API Test Steps](../../../CLAUDE.md#rule-api-test-steps), [No Multiple Tags](../../../CLAUDE.md#rule-no-multiple-tags), [Sources of Truth](../../../CLAUDE.md#rule-sources-of-truth) and [State Cleanup](../../../CLAUDE.md#rule-state-cleanup) for API specs, plus the WON'T rules: [No Any](../../../CLAUDE.md#rule-no-any), [No XPath](../../../CLAUDE.md#rule-no-xpath), [No Hard Waits](../../../CLAUDE.md#rule-no-hard-waits), [No Secrets](../../../CLAUDE.md#rule-no-secrets), [No Hardcoded Test Content](../../../CLAUDE.md#rule-no-hardcoded-test-content), [No Loose Schemas](../../../CLAUDE.md#rule-no-loose-schemas), [No Tags on Describe](../../../CLAUDE.md#rule-no-tags-on-describe) and [No Silent Coverage Drops](../../../CLAUDE.md#rule-no-silent-coverage-drops).
+- **Contract fidelity (STRICT).** Schemas must mirror the documented OpenAPI/Swagger contract ([Explore Before Generate](../../../CLAUDE.md#rule-explore-before-generate)). Flag — as a 🔴 Must-fix — any of these schema-loosening moves, even if they make a test pass: relaxing `z.strictObject` → `z.object`; adding `.optional()`/`.nullable()`/`.passthrough()`/`.catchall()` or widening a type purely to absorb an unexpected runtime value; deleting a field the contract documents; replacing a precise validator (`z.uuid`, `z.iso.datetime`, `z.int`) with a looser one. A loosened schema is worse than a skipped test because it permanently hides the drift.
 - **Consistency with siblings** — compare against the nearest existing file of the same kind (the sibling controller spec, the neighbouring page object). Divergence from an established pattern is a finding even when no rule names it.
 - **Real bugs** — logic errors, wrong assertions, fragile data assumptions (e.g. `.find()` on a possibly-empty env response), off-by-one, copy-paste leftovers (stale qase IDs, wrong endpoint).
 - **Coverage gaps** — status codes / fields / negative cases present in siblings but missing here.
@@ -131,30 +130,30 @@ With the routed skills + Constitution in hand, walk the diff and check, at minim
 
 ### Phase 6 — Constitution checklist (MANDATORY GATE)
 
-**Do not write the report until this is done.** This gate is the most load-bearing step — it converts "I read the diff and it felt fine" into an auditable verdict against every floor rule, and it is where reviews that skip straight to vibes go wrong.
+<a id="rule-constitution-gate-mandatory"></a>**Do not write the report until this is done.** This gate is the most load-bearing step — it converts "I read the diff and it felt fine" into an auditable verdict against every floor rule, and it is where reviews that skip straight to vibes go wrong.
 
-**Run the mechanical scan first**, then do the judgment items by hand:
+<a id="rule-run-scan-script-first"></a>**Run the mechanical scan first**, then do the judgment items by hand:
 
 ```bash
 .claude/skills/pr-reviewer/scripts/scan-constitution.sh "$BASE"
 ```
 
-The script greps the changed files for the deterministically-detectable violations (`any`, `z.object(`, `waitForTimeout`, XPath, `@playwright/test` import in specs, manual page-object `new`, `@functional`, tags on `describe`, `.json` under `test-data/static`, magic-number timeouts, hardcoded URLs) and lists every `Schema.parse()` call site for you to confirm. It maps each check to a checklist row by `[#]`. Use its ✅/❌ to fill those rows directly — it can't miss a hit the way a manual scan can, and it frees your attention for the judgment items.
+The script greps the changed files for the deterministically-detectable violations ([No Any](../../../CLAUDE.md#rule-no-any), [No Loose Schemas](../../../CLAUDE.md#rule-no-loose-schemas), [No Hard Waits](../../../CLAUDE.md#rule-no-hard-waits), [No XPath](../../../CLAUDE.md#rule-no-xpath), [Imports](../../../CLAUDE.md#rule-imports), [No Manual Instantiation](../../../CLAUDE.md#rule-no-manual-instantiation), [No Multiple Tags](../../../CLAUDE.md#rule-no-multiple-tags), [No Tags on Describe](../../../CLAUDE.md#rule-no-tags-on-describe), [No JSON Static Data](../../../CLAUDE.md#rule-no-json-static-data), [No Magic Numbers](../../../CLAUDE.md#rule-no-magic-numbers), [Sources of Truth](../../../CLAUDE.md#rule-sources-of-truth)) and lists every `Schema.parse()` call site for you to confirm. It maps each check to a checklist row by `[#]`. Use its ✅/❌ to fill those rows directly — it can't miss a hit the way a manual scan can, and it frees your attention for the judgment items.
 
-Then read **`references/constitution-checklist.md`** and walk the remaining items against the three-dot diff — the ones a grep can't judge: coverage gaps, sibling divergence, schema-vs-contract fidelity, cleanup hooks, return-type completeness, feedback-message selectors. Record ✅ / ❌ / ➖ with `file:line` evidence for every applicable item. The routed skills from Phase 3 layer area-specific depth on top — the checklist is the non-negotiable baseline.
+Then read **[`references/constitution-checklist.md`](references/constitution-checklist.md)** and walk the remaining items against the three-dot diff — the ones a grep can't judge: coverage gaps ([No Silent Coverage Drops](../../../CLAUDE.md#rule-no-silent-coverage-drops)), sibling divergence, schema-vs-contract fidelity, cleanup hooks ([State Cleanup](../../../CLAUDE.md#rule-state-cleanup)), return-type completeness, feedback-message selectors ([No Feedback-Less POM](../../../CLAUDE.md#rule-no-feedback-less-pom)). Record ✅ / ❌ / ➖ with `file:line` evidence for every applicable item. The routed skills from Phase 3 layer area-specific depth on top — the checklist is the non-negotiable baseline.
 
 Rules:
 
-- Mark ➖ **only** when the branch genuinely doesn't touch that area — never as a shortcut for "looks fine."
+- <a id="rule-checklist-verdict-honesty"></a>Mark ➖ **only** when the branch genuinely doesn't touch that area — never as a shortcut for "looks fine."
 - Every ❌ becomes a finding in the report at the tier the checklist assigns.
 - If an item can't be evaluated (e.g. tests unrunnable for missing env), record that explicitly — do not mark it ✅.
 - The count of unresolved ❌ directly feeds the verdict and confidence score in Phase 7.
 
 ### Phase 7 — Report
 
-Use the exact template in **`assets/report-template.md`**. Tiered (🔴 Must-fix / 🟠 Should-fix / 🟡 Minor), a ✅ Good section so the author knows what's right, an overall verdict, a **confidence score with rationale**, and an **open-questions-for-author** block for things you genuinely can't resolve from the repo (e.g. "is the wallet env guaranteed to seed a notice with a PDF?"). Every ❌ from the Phase 6 checklist must appear here. Confidence rubric is below.
+Use the exact template in **[`assets/report-template.md`](assets/report-template.md)**. Tiered (🔴 Must-fix / 🟠 Should-fix / 🟡 Minor), a ✅ Good section so the author knows what's right, an overall verdict, a **confidence score with rationale**, and an **open-questions-for-author** block for things you genuinely can't resolve from the repo (e.g. "is the wallet env guaranteed to seed a notice with a PDF?"). Every ❌ from the Phase 6 checklist must appear here. Confidence rubric is below.
 
-**Default: report in chat.** Post to the GitHub PR only when the user asks (e.g. "review and comment on the PR", "post the findings", "--comment"). When they do:
+<a id="rule-report-in-chat-default"></a>**Default: report in chat.** Post to the GitHub PR only when the user asks (e.g. "review and comment on the PR", "post the findings", "--comment"). When they do:
 
 ```bash
 # Find the PR for the branch (must exist; don't open one unasked).
@@ -178,10 +177,10 @@ gh pr view <branch> --json number,url -q '.number'
 
     Repeat the `comments[][...]` triple per finding. `line` is the line in the file's new version; use `side=RIGHT` (default) for added/changed lines.
 
-- Never `--approve` or `--request-changes` on the user's behalf — use `--comment` only; the human owns the verdict.
-- If no PR exists for the branch, say so and ask whether to open one (`gh pr create`) — don't open it unprompted.
+- <a id="rule-never-approve-or-request-changes"></a>Never `--approve` or `--request-changes` on the user's behalf — use `--comment` only; the human owns the verdict.
+- <a id="rule-dont-open-pr-unasked"></a>If no PR exists for the branch, say so and ask whether to open one (`gh pr create`) — don't open it unprompted.
 
-**Stop here.** This is the primary deliverable. Do not modify any file.
+<a id="rule-review-read-only"></a>**Stop here.** This is the primary deliverable. Do not modify any file.
 
 ### Phase 8 — OPTIONAL: offer to implement fixes
 
@@ -195,7 +194,7 @@ After the report, offer: _"Want me to implement any of these findings?"_ The use
 
 ## Confidence rubric
 
-State a 1–10 score with a one-line rationale and the unknowns that cap it.
+<a id="rule-confidence-rubric-pr"></a>This is a **review score**: it says how much of the review could be verified. Plan proposals use a different scale, the [Confidence Gate Thresholds](../ai-native-workflow/SKILL.md#rule-confidence-gate-thresholds). State a 1–10 score with a one-line rationale and the unknowns that cap it.
 
 - **9–10** — diff fully read, all applicable skills routed, lint/tsc run clean on changed files, findings each tied to a rule/bug; only trivia left uncertain.
 - **6–8** — review solid but something couldn't be confirmed (tests unrunnable for lack of env, an OpenAPI contract you couldn't see, a data assumption you couldn't verify).
@@ -207,10 +206,10 @@ Be honest about what you couldn't verify — a capped score with a clear reason 
 
 ## Guardrails
 
-- **Read-only until Phase 7 is approved.** The review never edits files. If the user only asked to "review", they get a report and nothing else.
-- **Three-dot diff always.** Reviewing master's own commits is the most common false-finding source.
-- **Every finding needs a hook** — a rule, a bug, or a missing case. No rule-less style opinions.
-- **Runtime ≠ contract (hard line).** API behaviour that disagrees with the documented spec is a bug to _report_ via `test.skip` + `// FIXME: <ticket>`, **never** a schema to _relax_. Any schema-loosening introduced to swallow a runtime surprise is itself a 🔴 Must-fix finding — see the Contract-fidelity bullet in Phase 5.
+- **Read-only until Phase 7 is approved.** See [Review Read-Only](#rule-review-read-only). The review never edits files. If the user only asked to "review", they get a report and nothing else.
+- **Three-dot diff always** ([three-dot rule](#rule-three-dot-diff)). Reviewing master's own commits is the most common false-finding source.
+- **Every finding needs a hook** — a rule, a bug, or a missing case. No rule-less style opinions. See [Finding Needs Rule](#rule-finding-needs-rule).
+- **Runtime ≠ contract (hard line).** A runtime mismatch is a bug to report, never a schema to relax ([Explore Before Generate](../../../CLAUDE.md#rule-explore-before-generate), [No Silent Coverage Drops](../../../CLAUDE.md#rule-no-silent-coverage-drops)). Any schema-loosening introduced to swallow a runtime surprise is itself a 🔴 Must-fix finding — see the Contract-fidelity bullet in Phase 5.
 - **Env failures aren't branch failures.** Distinguish "the branch is wrong" from "I lack the tokens/URL to run it".
 - **Don't trust the diff's own claims.** If a comment or test name says one thing and the code does another, that gap is itself a finding.
 
@@ -218,4 +217,4 @@ Be honest about what you couldn't verify — a capped score with a clear reason 
 
 ## Quick prompt
 
-A ready-to-paste invocation lives in **`assets/review-prompt.md`** — hand it to the user when they ask "how do I kick this off".
+A ready-to-paste invocation lives in **[`assets/review-prompt.md`](assets/review-prompt.md)** — hand it to the user when they ask "how do I kick this off".

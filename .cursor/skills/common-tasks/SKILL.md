@@ -8,15 +8,16 @@ author: Ivan Davidov
 
 Codegen sub-router. Owns prompt templates per artifact type and the post-generation verification checklist. Plugs into `ai-native-workflow` Phase 2 (Route) for codegen intents.
 
-For the 8-phase workflow see `ai-native-workflow/SKILL.md`. For worked examples and troubleshooting see this skill's `references/`.
+For the 8-phase workflow see [`ai-native-workflow/SKILL.md`](../ai-native-workflow/SKILL.md). For worked examples and troubleshooting see this skill's `references/`.
 
 ## Critical
 
-These rules are unique to template usage. **All other rules** (selectors, waits, types, Zod strictness, response validation, tags, fixtures, JSDoc, no-XPath, no-hardcoded-strings, etc.) live in the **`.cursor/rules/rules.mdc` Constitution** and the **leaf skills** (`api-testing`, `page-objects`, `selectors`, `test-standards`, `data-strategy`, `type-safety`, `fixtures`, `enums`). Re-read the Constitution + the matching leaf skill's Critical block **before** generating from any template here.
+These rules are unique to template usage. **All other rules** live in the **[`.cursor/rules/rules.mdc`](../../rules/rules.mdc) Constitution** and the **leaf skills** (`api-testing`, `page-objects`, `selectors`, `test-standards`, `data-strategy`, `type-safety`, `fixtures`, `enums`). Before generating from any template here, follow [Reread Constitution Before Codegen](../ai-native-workflow/SKILL.md#rule-recheck-critical-blocks).
 
-- **Resolve `{area}` first.** Every template contains `{area}` as a placeholder. Run the matching `ls` (`ls pages/`, `ls tests/`, `ls fixtures/api/schemas/`, `ls test-data/factories/`, `ls test-data/static/`, `ls enums/`) and substitute the real folder name **before** filling the template. Do not guess.
-- **Templates are starters, not substitutes.** Each template is a 10-15 line scaffold. The leaf skill listed for the category owns the deep rules — load it and follow it end-to-end. Never reimplement a leaf skill's rules inline in your prompt.
-- **Walk the verification checklist** (below) after generating. It is the canonical post-codegen audit; the leaf skills point here for it.
+- **Resolve `{area}` first.** Every template contains `{area}` as a placeholder; see [`{area}` is a placeholder](../../rules/rules.mdc#rule-area-placeholder). Run the matching `ls` (`ls pages/`, `ls tests/`, `ls fixtures/api/schemas/`, `ls test-data/factories/`, `ls test-data/static/`, `ls enums/`) and substitute the real folder name **before** filling the template. Do not guess.
+- <a id="rule-templates-are-starters"></a>**Templates are starters, not substitutes.** Each template is a 10-15 line scaffold. The leaf skill listed for the category owns the deep rules — load it and follow it end-to-end. Never reimplement a leaf skill's rules inline in your prompt.
+- <a id="rule-walk-verification-checklist"></a>**Walk the verification checklist** (below) after generating. It is the canonical post-codegen audit; the leaf skills point here for it.
+- Constitution rules that apply here: [Explore Before Generate](../../rules/rules.mdc#rule-explore-before-generate), [No Substitute UI Exploration](../../rules/rules.mdc#rule-no-substitute-ui-exploration), [Test Verification](../../rules/rules.mdc#rule-test-verification).
 
 ## Instructions
 
@@ -37,41 +38,41 @@ Match the user's request to one row, then run the `ls` commands the row's templa
 
 ### Phase 2: Select and customize the matching prompt template
 
-Open the theme file for your category from the [Prompt Templates](#prompt-templates) index below, copy the block, and replace every `[PLACEHOLDER]` and every `{area}` with concrete values. Leave no unreplaced placeholders in the final prompt.
+Open the theme file for your category from the [Prompt Templates](#prompt-templates) index below, copy the block, and replace every `[PLACEHOLDER]` and every `{area}` with concrete values. <a id="rule-no-unreplaced-placeholders"></a>Leave no unreplaced placeholders in the final prompt.
 
 ### Phase 3: Load the specialized skill for the deep rules
 
-The templates intentionally stay shallow. When the task needs more than the template's bullets — full status-code coverage, selector exploration rules, fixture composition patterns — load the specialized skill listed in Phase 1 and follow it end-to-end. **Do not reimplement that skill's rules inline.** Re-read the `.cursor/rules/rules.mdc` Constitution + the leaf skill's Critical block before writing code.
+The templates intentionally stay shallow. When the task needs more than the template's bullets — full status-code coverage, selector exploration rules, fixture composition patterns — load the specialized skill listed in Phase 1 and follow it end-to-end. See [Templates are starters, not substitutes](#rule-templates-are-starters), and re-read the Constitution and the leaf skill's Critical block before writing code ([Reread Constitution Before Codegen](../ai-native-workflow/SKILL.md#rule-recheck-critical-blocks)).
 
 ### Phase 4: Verify with the checklist, then run the affected tests
 
-Walk every box. Then run the affected tests; on red, load `debugging`.
+Walk every box ([Walk the verification checklist](#rule-walk-verification-checklist)). Then run the affected tests; on red, load `debugging`.
 
 #### Verification Checklist
 
 After generating code, confirm each box:
 
-- [ ] Imports are from `fixtures/pom/test-options.ts` (never `@playwright/test` in specs)
-- [ ] Paths, credentials, and endpoints come from `process.env.*` and `enums/{area}/*` — nothing hardcoded
-- [ ] Locators use `getByRole` / `getByLabel` / `getByTestId` — no XPath
-- [ ] No `any` types
-- [ ] No hard waits (`waitForTimeout`)
-- [ ] No JSDoc on locator getters/methods (JSDoc only on action methods)
-- [ ] Tests use `test.step` with Given/When/Then structure
-- [ ] Each test has exactly ONE tag from `@smoke`, `@sanity`, `@regression`, `@e2e`, `@api`, `@destructive` (never `@functional`, never multiple)
-- [ ] Tags live on individual tests, not on `test.describe()` blocks
-- [ ] Tests that mutate **shared/global** state (locale, permissions, roles, guest access, feature flags, global settings) are tagged **only** `@destructive`; tests that create + clean up **only their own data** keep their importance tag
-- [ ] **Any** state-mutating test (destructive or isolated) has an `afterEach`/`afterAll` hook that reverts what it wrote
-- [ ] Happy-path test data uses factories; curated invalid values come from `test-data/static/util/` or `test-data/static/{area}/`
-- [ ] Zod schemas use `z.strictObject()` — never `z.object()`
-- [ ] API response validation uses `expect(SchemaName.parse(body)).toBeTruthy();`
-- [ ] API tests with request bodies include empty-body + per-field omission + per-field invalid-type `for...of` loops (universal arrays imported from `test-data/static/util/invalid-values.ts`)
-- [ ] **Coverage audit:** Every status code in the OpenAPI spec has a matching test (or `test.skip` + `// FIXME`)
-- [ ] **Path parameter tests:** Endpoints with path params have the invalid-format data-driven loop
-- [ ] **405 tests:** At least one unsupported HTTP method test per endpoint
-- [ ] **Auth matrix:** Endpoints with `security` have both 401 (no token) and 403 (wrong role) tests
-- [ ] **Behavior mismatches:** Any divergence from spec uses `test.skip` + `// FIXME: <ticket-url>`, never silent omission
-- [ ] No explore-only or throwaway test files committed
+- [ ] [Imports](../../rules/rules.mdc#rule-imports)
+- [ ] [Sources of Truth](../../rules/rules.mdc#rule-sources-of-truth)
+- [ ] [Selectors](../../rules/rules.mdc#rule-selectors), [No XPath](../../rules/rules.mdc#rule-no-xpath)
+- [ ] [No `any`](../../rules/rules.mdc#rule-no-any)
+- [ ] [No Hard Waits](../../rules/rules.mdc#rule-no-hard-waits)
+- [ ] [No JSDoc on Locators](../../rules/rules.mdc#rule-no-jsdoc-on-locators), [JSDoc on Actions](../../rules/rules.mdc#rule-jsdoc-on-actions)
+- [ ] [Test Steps](../../rules/rules.mdc#rule-test-steps)
+- [ ] [No Multiple Tags](../../rules/rules.mdc#rule-no-multiple-tags)
+- [ ] [No Tags on Describe](../../rules/rules.mdc#rule-no-tags-on-describe)
+- [ ] [No Multiple Tags](../../rules/rules.mdc#rule-no-multiple-tags) (shared-state tests are tagged only `@destructive`; tests that create and clean up only their own data keep their importance tag)
+- [ ] [State Cleanup](../../rules/rules.mdc#rule-state-cleanup)
+- [ ] [Data Generation](../../rules/rules.mdc#rule-data-generation), [Data Strategy](../../rules/rules.mdc#rule-data-strategy)
+- [ ] [Strict Schemas](../../rules/rules.mdc#rule-strict-schemas), [No Loose Schemas](../../rules/rules.mdc#rule-no-loose-schemas)
+- [ ] [Response Validation](../../rules/rules.mdc#rule-response-validation)
+- [ ] [No Empty-Body-Only 400](../../rules/rules.mdc#rule-no-empty-body-only-400)
+- [ ] **Coverage audit:** [No Silent Coverage Drops](../../rules/rules.mdc#rule-no-silent-coverage-drops)
+- [ ] **Path parameter tests:** [Path Param Fuzzing](../api-testing/SKILL.md#rule-path-param-fuzzing)
+- [ ] **405 tests:** [405 Test Per Endpoint](../api-testing/SKILL.md#rule-405-test-per-endpoint)
+- [ ] **Auth matrix:** [Auth Matrix 401 403](../api-testing/SKILL.md#rule-auth-matrix-401-403)
+- [ ] **Behavior mismatches:** [No Silent Coverage Drops](../../rules/rules.mdc#rule-no-silent-coverage-drops)
+- [ ] [No Explore-Only Files](../../rules/rules.mdc#rule-no-explore-only-files)
 
 #### Run the affected tests (mandatory)
 
@@ -81,7 +82,7 @@ npx playwright test --grep @smoke                        # by tag
 npm test                                                 # all non-destructive
 ```
 
-**Failure protocol:** Read the error → load `debugging` (failure-mode taxonomy + right Playwright tool per failure: UI Mode, Trace Viewer, Inspector, HTML report) → fix the root cause (no `try/catch` on `expect`, no timeout bumps, no silent `.skip`) → re-run; for flake fixes, 5x consecutively.
+**Failure protocol:** Read the error ([Read Failure First](../debugging/SKILL.md#rule-read-failure-first)) → load `debugging` (failure-mode taxonomy + right Playwright tool per failure: UI Mode, Trace Viewer, Inspector, HTML report) → fix the root cause ([Never Suppress Failures](../debugging/SKILL.md#rule-never-suppress-failures)) → re-run; for flake fixes, [Flaky Rerun 5x](../debugging/SKILL.md#rule-flaky-rerun-5x).
 
 ## Prompt Templates
 
@@ -96,7 +97,7 @@ Split by theme under `templates/` so the agent loads only the slice it needs —
 
 ## See Also
 
-- **`.cursor/rules/rules.mdc`** — Constitution (MUST/SHOULD/WON'T tables) is the safety floor for every artifact generated from a template here.
+- **[`.cursor/rules/rules.mdc`](../../rules/rules.mdc)** — Constitution (MUST/SHOULD/WON'T tables) is the safety floor for every artifact generated from a template here.
 - **`ai-native-workflow`** — owns the 8-phase workflow; Phase 2 routes codegen intents to this skill.
 - **`api-testing`** — deep rules for API tests + schemas; load before using **Add API Test** or **Create a New Zod Schema** templates.
 - **`page-objects`**, **`selectors`**, **`playwright-cli`** — the UI authoring chain; load before using Page Object Tasks templates.
@@ -106,5 +107,5 @@ Split by theme under `templates/` so the agent loads only the slice it needs —
 - **`type-safety`** — Zod 4 validators + the `expect(Schema.parse(body)).toBeTruthy()` rule; load before any schema work.
 - **`debugging`** — load on Phase 4 verification red.
 - **`refactor-values`** — load when a template would change an existing enum value or static-data row.
-- **`references/examples.md`** — three end-to-end multi-skill chains using the templates.
-- **`references/troubleshooting.md`** — common pitfalls when filling templates and how to fix.
+- **[`references/examples.md`](references/examples.md)** — three end-to-end multi-skill chains using the templates.
+- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common pitfalls when filling templates and how to fix.

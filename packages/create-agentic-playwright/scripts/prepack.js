@@ -26,6 +26,7 @@ const TEMPLATE_DIR = path.join(PKG_ROOT, 'template');
 const EXCLUDE_PREFIXES = [
     'packages/', // the initializer itself
     '.github/ISSUE_TEMPLATE/', // repo community files
+    '.scratch/', // fork working notes (tickets)
 ];
 const EXCLUDE_FILES = new Set([
     'CHANGELOG.md', // repo history; the CLI writes a fresh one
@@ -40,6 +41,10 @@ const EXCLUDE_FILES = new Set([
     '.github/workflows/template-smoke.yml',
     '.github/workflows/release.yml',
     '.github/FUNDING.yml', // author sponsorship link
+    // Fork working documents for the rule-tree refactor -- not product.
+    'UPSTREAM-NOTES.md',
+    'RULE-TRIAGE.md',
+    'RULE-TREE-SPEC.md',
 ]);
 
 function isExcluded(rel) {

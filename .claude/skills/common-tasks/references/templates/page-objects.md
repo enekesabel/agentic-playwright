@@ -2,7 +2,7 @@
 
 Prompt templates for page objects and their locators/actions. The `page-objects`, `selectors`, and `playwright-cli` skills own the deep rules; these are 10-15 line starters. Resolve `{area}` with `ls pages/` first.
 
-> **Important:** Before generating page objects, read the `playwright-cli` skill (`.claude/skills/playwright-cli/SKILL.md`) and run **`playwright-cli` in the terminal** (`goto`, `snapshot`, etc.). **Do not** use IDE browser MCP, Cursor browser tools, or any substitute — orchestrator rule **No Substitute UI Exploration**. If the CLI cannot run, stop and notify the human.
+> **Important:** [Explore Before Generate](../../../../../CLAUDE.md#rule-explore-before-generate) and [No Substitute UI Exploration](../../../../../CLAUDE.md#rule-no-substitute-ui-exploration) apply: before generating page objects, read the `playwright-cli` skill and explore with `playwright-cli` in the terminal.
 
 ## Add a New Page Object (With Exploration)
 
@@ -36,7 +36,7 @@ Create a new page object for [PAGE NAME] with the following elements:
 
 Requirements:
 - File location: pages/{area}/[name].page.ts  (run `ls pages/` first to find real area name)
-- Use semantic locators (getByRole > getByLabel > getByTestId)
+- Use semantic locators in priority order (getByRole > getByLabel > getByPlaceholder > getByText > getByTestId); never XPath
 - NO JSDoc on locator getters/methods
 - JSDoc with @param and @returns on action methods only
 - Register in fixtures/pom/page-object-fixture.ts

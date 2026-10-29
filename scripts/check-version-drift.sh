@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-version-drift.sh
+# check-version-drift.sh [root-dir]
 #
 # Asserts the product version is consistent across its three surfaces:
 #   1. VERSION            -- the single source of truth
@@ -10,7 +10,8 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Optional first argument: root directory to check (default: the repo containing this script).
+REPO_ROOT="$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd)"
 VERSION_FILE="${REPO_ROOT}/VERSION"
 PKG_FILE="${REPO_ROOT}/package.json"
 CHANGELOG="${REPO_ROOT}/CHANGELOG.md"

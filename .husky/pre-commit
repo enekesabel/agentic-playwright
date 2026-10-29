@@ -1,11 +1,32 @@
 npx lint-staged
 
-# Skill-rules + skill-references drift gates run only when files in any of the
-# three rule trees are staged, so they don't slow unrelated commits.
-if git diff --cached --name-only --diff-filter=ACMR \
-    | grep -qE '^(\.claude/skills/|\.cursor/skills/|\.github/instructions/|\.github/skills/)'; then
-    npm run --silent check:skills-drift
+# Mirror build: when a canonical rule-tree file (or the build's inputs) is
+# staged, regenerate the Cursor and Copilot trees and stage them, so mirrors
+# land in the same commit. Runs before the gates below, which read the mirrors.
+# Node built-ins only. Builds from the working tree, not the index.
+if git diff --cached --name-only --diff-filter=ACMRD \
+    | grep -qE '^(CLAUDE\.md$|\.claude/skills/|scripts/build-mirrors\.mjs$|skills-lock\.json$)'; then
+    npm run --silent build:mirrors
+    # Only existing outputs: a tree pruned at init is not built and must not be
+    # passed to git add (unknown pathspec is fatal).
+    for mirror in .cursor/skills .cursor/rules/rules.mdc .github/instructions .github/copilot-instructions.md; do
+        if [ -e "$mirror" ]; then
+            git add -A -- "$mirror"
+        fi
+    done
+fi
+
+# Link check: when any file it covers is staged (rule trees, root docs,
+# ESLint config, gate scripts). Deletions count: they can leave links dangling.
+if git diff --cached --name-only --diff-filter=ACMRD \
+    | grep -qE '^(\.claude/|\.cursor/|\.github/|(CLAUDE|README|AI-WORKFLOWS|CONTRIBUTING)\.md$|eslint\.config\.mts$|scripts/[^/]+\.sh$)'; then
     npm run --silent check:skills-references
+fi
+
+# Gate self-tests: when a gate script, the write-time hook, or the fixtures are staged.
+if git diff --cached --name-only --diff-filter=ACMRD \
+    | grep -qE '^(scripts/(check-[^/]+\.sh$|tests/)|\.claude/scripts/enforce_constitution\.py$)'; then
+    npm run --silent check:gates-selftest
 fi
 
 # Version-drift gate: only when a version surface is staged.

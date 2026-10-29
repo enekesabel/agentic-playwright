@@ -43,6 +43,7 @@ jobs:
               working-directory: /tmp/smoke/demo-project
               run: |
                   npm run check:skills
+                  npm run check:mirrors
                   npm run check:version
 
             # API only: the demo site's UI is behind Cloudflare bot protection,
@@ -54,11 +55,29 @@ jobs:
                   npx playwright install --with-deps chromium
                   npx playwright test --project=api
 
+            # No git in this variant (--skip-git), so instead of check:mirrors
+            # assert that the mirror build skips the pruned trees.
             - name: Pruned variant — gates still green without Cursor/Copilot trees
               run: |
                   cd /tmp/smoke
                   node package/bin/create.js pruned-project --demo --no-cursor --no-copilot --skip-install --skip-git
                   cd pruned-project
-                  bash scripts/check-rules-drift.sh
                   bash scripts/check-skill-references-drift.sh
                   bash scripts/check-skill-crossrefs.sh
+                  node scripts/build-mirrors.mjs
+                  test ! -e .cursor
+                  test ! -e .github/instructions
+                  test ! -e .github/copilot-instructions.md
+
+            # No Claude tree: CLAUDE.md, .claude/ and the write-time hook are
+            # gone, so links to them must have been unlinked at init and the
+            # hook self-test must skip rather than fail.
+            - name: No-Claude variant — gates still green without the Claude tree
+              run: |
+                  cd /tmp/smoke
+                  node package/bin/create.js noclaude-project --demo --no-claude --skip-install --skip-git
+                  cd noclaude-project
+                  bash scripts/check-skill-references-drift.sh
+                  bash scripts/check-skill-crossrefs.sh
+                  bash scripts/tests/run.sh
+                  bash scripts/tests/enforce-constitution.test.sh

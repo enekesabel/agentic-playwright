@@ -6,12 +6,11 @@ applyTo: 'config/**/*.ts'
 
 ## Critical
 
-- **NEVER** hardcode URLs, tokens, emails, or passwords anywhere in the scaffold. The only source of truth for env-driven values is `process.env.*`, backed by `env/.env.${environment}`.
-- **NEVER** hardcode endpoint paths or route strings in `config/`. Paths belong in `enums/{area}/*` (see the `enums` skill).
-- **ALWAYS** add every new env variable to `env/.env.example` with a safe placeholder — no real secrets, no production URLs.
-- **ALWAYS** add a JSDoc comment on every config property describing the value and the backing env var.
-- **ALWAYS** keep app-facing URLs/settings in `config/app.ts` and utility/third-party services in `config/util/util.ts`. Do not create ad-hoc config files elsewhere.
-- **NEVER** commit `env/.env.dev`, `env/.env.staging`, or any other real env file containing credentials. Only `env/.env.example` is tracked.
+- <a id="rule-env-example-placeholder"></a>**ALWAYS** add every new env variable to `env/.env.example` with a safe placeholder — no real secrets, no production URLs.
+- <a id="rule-jsdoc-config-property"></a>**ALWAYS** add a JSDoc comment on every config property describing the value and the backing env var.
+- <a id="rule-config-file-locations"></a>**ALWAYS** keep app-facing URLs/settings in `config/app.ts` and utility/third-party services in `config/util/util.ts`. Do not create ad-hoc config files elsewhere.
+- <a id="rule-no-commit-env-files"></a>**NEVER** commit `env/.env.dev`, `env/.env.staging`, or any other real env file containing credentials. Only `env/.env.example` is tracked.
+- Constitution rules that apply here: [Sources of Truth](../copilot-instructions.md#rule-sources-of-truth) (env-driven values come from `process.env.*`; endpoint paths belong in `enums/{area}/*`, see the `enums` skill), [No Secrets](../copilot-instructions.md#rule-no-secrets), [Enums for Strings](../copilot-instructions.md#rule-enums-for-strings).
 
 ## File Locations
 
@@ -55,7 +54,7 @@ Use this decision table before adding anything:
 | Timeout / retry / workers tuning                           | `playwright.config.ts` — **not** `config/` unless reused outside Playwright |
 | Runtime selector (`ENVIRONMENT`, `CI`)                     | Shell-level env var only — **not** `.env.example`                           |
 
-If the value fits none of the rows above, stop and ask — do not invent a new config file.
+If the value fits none of the rows above, stop and ask — see [Config File Locations](#rule-config-file-locations).
 
 ### Phase 3: Add the env var to `env/.env.example`
 
@@ -113,7 +112,7 @@ export const utilityConfig = {
 };
 ```
 
-Every property requires a JSDoc comment naming the backing env var.
+Every property carries a JSDoc comment ([JSDoc Config Property](#rule-jsdoc-config-property)).
 
 ### Phase 5: Consume the value from tests, fixtures, and helpers
 
@@ -135,7 +134,7 @@ Two equally valid access patterns exist in the scaffold today:
     await page.goto(appConfig.appUrl!);
     ```
 
-Pick whichever fits the call site; do not mix them inside a single file without reason. For how to satisfy the TypeScript `string | undefined` that `process.env.*` returns — non-null assertion (`!`) vs fallback default — see the `type-safety` skill.
+Pick whichever fits the call site; do not mix them inside a single file without reason. For how to satisfy the TypeScript `string | undefined` that `process.env.*` returns, see [Process Env Typing](type-safety.instructions.md#rule-process-env-typing).
 
 ## Examples
 
@@ -176,7 +175,7 @@ Actions:
     };
     ```
 
-4. **Phase 5** — Import `utilityConfig.reportingUrl` in the helper that posts results; follow the `type-safety` skill for `!` vs fallback handling.
+4. **Phase 5** — Import `utilityConfig.reportingUrl` in the helper that posts results; follow [Process Env Typing](type-safety.instructions.md#rule-process-env-typing) for `!` vs fallback handling.
 
 ## Troubleshooting
 
@@ -194,14 +193,14 @@ Fix: In the scaffold's demo setup, an auth-bootstrap helper under `helpers/{area
 
 **TypeScript complains that `process.env.X` is `string | undefined`.**
 Cause: `process.env` values are always optional types in Node.
-Fix: See the `type-safety` skill for the two sanctioned patterns (non-null assertion with `!` for values guaranteed to exist at runtime; fallback default with `??` otherwise).
+Fix: See [Process Env Typing](type-safety.instructions.md#rule-process-env-typing) for the two sanctioned patterns (non-null assertion with `!` for values guaranteed to exist at runtime; fallback default with `??` otherwise).
 
 **I want to put an endpoint path in a config file.**
 Cause: Wrong skill. Paths are source-controlled constants, not environment-driven settings.
-Fix: Add the path to `enums/{area}/*` (see the `enums` skill). `config/` is only for URLs, credentials, and infra settings.
+Fix: Add the path to `enums/{area}/*` (see the `enums` skill and [Sources of Truth](../copilot-instructions.md#rule-sources-of-truth)). `config/` is only for URLs, credentials, and infra settings.
 
 **My new config property has no JSDoc and the PR review is blocking.**
-Fix: Every config property requires a JSDoc comment naming the backing env var, e.g. `/** Reporting service base URL loaded from REPORTING_URL env variable */`.
+Fix: See [JSDoc Config Property](#rule-jsdoc-config-property); add a comment naming the backing env var, e.g. `/** Reporting service base URL loaded from REPORTING_URL env variable */`.
 
 **I accidentally committed `env/.env.dev`.**
 Fix: Remove the file from the commit (`git rm --cached env/.env.dev`), verify it's covered by `.gitignore`, rotate any credentials that were exposed, and push the fix.
@@ -209,6 +208,6 @@ Fix: Remove the file from the commit (`git rm --cached env/.env.dev`), verify it
 ## See Also
 
 - **`enums` skill** — endpoint paths, route constants, and storage-state paths live there, not in `config/`.
-- **`type-safety` skill** — handling `string | undefined` returned by `process.env.*` (`!` vs fallback defaults).
+- **`type-safety` skill** — [Process Env Typing](type-safety.instructions.md#rule-process-env-typing): handling `string | undefined` returned by `process.env.*`.
 - **`api-testing` skill** — which env vars tests consume (`API_URL`, `ACCESS_TOKEN`, `ACCESS_TOKEN_ZERO`, `APP_EMAIL`, `APP_PASSWORD`) and how.
 - **`debugging` skill** — when `process.env.X` is `undefined` at runtime, when a CI run reads different env values than local, or when a navigation times out because `APP_URL` is wrong.

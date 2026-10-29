@@ -29,7 +29,10 @@ TAG_IN_DESCRIBE = re.compile(
 
 # (rule id, path predicate, content predicate or None, message)
 # content predicate None => the write itself is forbidden for matching paths.
+# Each entry names the Constitution row it enforces as a relative file#anchor
+# comment; the link check fails if that row is renamed or removed.
 RULES = [
+    # Enforces ../../CLAUDE.md#rule-imports
     (
         "no-playwright-test-import",
         lambda p: SPEC_FILE.search(p),
@@ -37,6 +40,7 @@ RULES = [
         "Spec/setup files must import `test`/`expect` from `fixtures/pom/test-options.ts`, "
         "never from `@playwright/test` (Constitution MUST: Imports).",
     ),
+    # Enforces ../../CLAUDE.md#rule-no-hard-waits
     (
         "no-hard-wait",
         lambda p: TS_FILE.search(p),
@@ -44,6 +48,7 @@ RULES = [
         "`waitForTimeout()` is forbidden everywhere. Use web-first assertions, e.g. "
         "`expect(locator).toBeVisible()` (Constitution WON'T: No Hard Waits).",
     ),
+    # Enforces ../../CLAUDE.md#rule-no-loose-schemas
     (
         "no-loose-schema",
         lambda p: SCHEMA_FILE.search(p),
@@ -51,6 +56,7 @@ RULES = [
         "API schemas must use `z.strictObject()`, never `z.object()` "
         "(Constitution WON'T: No Loose Schemas).",
     ),
+    # Enforces ../../CLAUDE.md#rule-no-xpath
     (
         "no-xpath",
         lambda p: UI_OR_TEST_FILE.search(p),
@@ -58,6 +64,7 @@ RULES = [
         "XPath selectors are forbidden. Use getByRole > getByLabel > getByPlaceholder > "
         "getByText > getByTestId (Constitution WON'T: No XPath).",
     ),
+    # Enforces ../../CLAUDE.md#rule-no-json-static-data
     (
         "no-json-static-data",
         lambda p: STATIC_JSON.search(p),
@@ -65,6 +72,7 @@ RULES = [
         "Files under `test-data/static/` must be TypeScript (`.ts` with `as const` exports). "
         "JSON is forbidden (Constitution WON'T: No JSON Static Data).",
     ),
+    # Enforces ../../CLAUDE.md#rule-no-multiple-tags
     (
         "no-functional-tag",
         lambda p: SPEC_FILE.search(p),
@@ -72,6 +80,7 @@ RULES = [
         "The `@functional` tag is forbidden. Use exactly one of @smoke, @sanity, "
         "@regression, @e2e, @api, @destructive (Constitution WON'T: No Multiple Tags).",
     ),
+    # Enforces ../../CLAUDE.md#rule-no-tags-on-describe
     (
         "no-tags-on-describe",
         lambda p: SPEC_FILE.search(p),

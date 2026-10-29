@@ -9,7 +9,7 @@ User: _"Add API tests for `POST /api/products`."_
 1. **Phase 1 — Classify** — Codegen, API test.
 2. **Phase 2 — Route** — `common-tasks` (template) → `api-testing` (deep rules).
 3. **Phase 3 — Explore** — Confirm OpenAPI exists for `/api/products`; if not, fall back to `apiRequest` exploration. `ls fixtures/api/schemas/`, `ls tests/`, `ls enums/`.
-4. **Phase 4 — Plan + Confidence** — Schema name + location, factory name + location, spec file structure, coverage plan covering every status code from the OpenAPI block, validation tiers (universal `INVALID_*` + per-field omission + path-param fuzzing). Output confidence + unknowns.
+4. **Phase 4 — Plan + Confidence** — Schema name + location, factory name + location, spec file structure, coverage plan covering every status code from the OpenAPI block, validation tiers (universal `INVALID_*` + per-field omission + path-param fuzzing). Output the proposal block ([Confidence Gate Required](../SKILL.md#rule-confidence-gate-required)).
 5. **Phase 5 — Human gate** — Confirm scope.
 6. **Phase 6 — Apply** — `z.strictObject` (`type-safety`), `expect(Schema.parse(body)).toBeTruthy();` (`api-testing` / `type-safety`), `ApiEndpoints.PRODUCTS` (`enums`), Faker factory (`data-strategy`), single-tag `@api` (`test-standards`).
 7. **Phase 7 — Verify** — Run `npx playwright test tests/{area}/api/products.spec.ts` against the `api-testing` Phase 5 coverage matrix and the `common-tasks` verification checklist. On red, load `debugging`.
@@ -22,7 +22,7 @@ User: _"Backend renamed `/api/users/login` to `/api/auth/login`. Update us."_
 1. **Phase 1 — Classify** — Refactor.
 2. **Phase 2 — Route** — `refactor-values` direct.
 3. **Phase 3 — Explore** — `rg "ApiEndpoints.LOGIN" .` and `rg "'/api/users/login'" .` to find every consumer.
-4. **Phase 4 — Plan + Confidence** — `enums/{area}/app.ts` change + impacted spec files + helpers + sibling skill docs that mention the old path. Confidence + unknowns.
+4. **Phase 4 — Plan + Confidence** — `enums/{area}/app.ts` change + impacted spec files + helpers + sibling skill docs that mention the old path. Proposal block with confidence + unknowns.
 5. **Phase 5 — Human gate** — Confirm.
 6. **Phase 6 — Apply** — Follow `refactor-values` end-to-end (impact tables, atomic edit, no schema loosening).
 7. **Phase 7 — Verify** — `npx tsc --noEmit` + `npx eslint .` + `npx playwright test --grep "login"`. On red, if backend isn't deployed yet, follow `api-testing` Phase 7 (`test.skip` + `// FIXME:`).

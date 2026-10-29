@@ -10,19 +10,15 @@ This framework uses a **bifurcated data strategy**: static data for deterministi
 
 ## Critical
 
-- **Static data files are TypeScript only.** Every file under `test-data/static/**` is a `.ts` file that exports `as const` literal values. **NEVER** use `.json`.
-- **Static data files may only export literal values.** No runtime imports (type-only imports are fine), no function definitions, no computed values, no Faker calls. Dynamic data belongs in factories, not in static files.
-- **NEVER** hardcode test content strings (names, emails, todo text, product names, descriptions, etc.) in a spec file. Generate with a Faker factory.
-- **NEVER** redefine universal type-mismatch arrays (`[123, true, null, undefined]`, etc.) inline. Import them from `test-data/static/util/invalid-values.ts`.
-- **ALWAYS** validate factory output with `Schema.parse(...)` and return the Zod-inferred type.
-- **NEVER** generate app-defined strings with Faker (error messages, button labels, page headers). Those live in `enums/` so they stay in sync with the application under test.
-- **NEVER** store fixed expected values that are used in a single assertion in a static data file. Keep them inline in the test.
-- **ALWAYS** follow the `refactor-values` skill before editing any existing static-data file or enum value — these edits cascade through assertions and data-driven loops.
-- **NEVER** introduce magic numbers (timeouts, retry counts, limits) inline. Prefer web-first assertions; when a numeric value is unavoidable, route it through `playwright.config.ts` or an enum in `enums/`.
+- <a id="rule-static-data-literals-only"></a>**Static data files may only export literal values.** No runtime imports (type-only imports are fine), no function definitions, no computed values, no Faker calls. Dynamic data belongs in factories, not in static files.
+- <a id="rule-factory-validate-and-return-inferred-type"></a>**ALWAYS** validate factory output with `Schema.parse(...)` and return the Zod-inferred type.
+- <a id="rule-inline-single-use-expected-value"></a>**NEVER** store fixed expected values that are used in a single assertion in a static data file. Keep them inline in the test.
+- **Editing existing static data** follows [Refactor Impact First](../refactor-values/SKILL.md#rule-refactor-impact-first); these edits cascade through assertions and data-driven loops.
+- **Constitution rules that apply here:** [No JSON Static Data](../../../CLAUDE.md#rule-no-json-static-data), [Data Strategy](../../../CLAUDE.md#rule-data-strategy), [No Hardcoded Test Content](../../../CLAUDE.md#rule-no-hardcoded-test-content), [Sources of Truth](../../../CLAUDE.md#rule-sources-of-truth) (app-defined strings live in enums, never Faker), [No Magic Numbers](../../../CLAUDE.md#rule-no-magic-numbers), [Data Generation](../../../CLAUDE.md#rule-data-generation).
 
 ## File Locations
 
-> **`{area}` is a placeholder.** Before creating or referencing any path below, run `ls test-data/static/` and `ls test-data/factories/` to discover the real subdirectory names in this repo (e.g., `front-office`, `back-office`) and use those instead.
+> `{area}` is a placeholder; see [Area Placeholder](../../../CLAUDE.md#rule-area-placeholder).
 
 | Type                     | Directory                     | Purpose                                                                              |
 | ------------------------ | ----------------------------- | ------------------------------------------------------------------------------------ |
@@ -43,7 +39,7 @@ Use this decision table before touching any file. Each row points to the canonic
 | Domain-specific curated invalid sets (invalid emails, weak passwords, forbidden categories, invalid locales) | `.ts` with `as const` exports under `test-data/static/{area}/`           |
 | Field-specific boundary / range values (e.g., out-of-range for a `1..5` number)                              | **Inline** in the spec file when used in exactly one place               |
 | App-defined strings (error messages, button labels, page titles)                                             | `enums/{area}/*` (see the `enums` skill) — **not** Faker, **not** static |
-| Fixed expected values used in a single assertion                                                             | **Inline** in the test — not a JSON file                                 |
+| Fixed expected values used in a single assertion                                                             | **Inline** in the test ([rule](#rule-inline-single-use-expected-value))  |
 | Timeouts, retries, workers, test-suite tuning                                                                | `playwright.config.ts` (see the `config` skill) — not `test-data/`       |
 
 If the value fits none of the rows, stop and ask. Do not invent a new location.
@@ -84,9 +80,9 @@ Key requirements:
 1. **Import Faker:** `import { faker } from '@faker-js/faker';`
 2. **Import the Zod schema:** use the corresponding schema from `fixtures/api/schemas/{area}/`.
 3. **Accept overrides:** `overrides?: Partial<SchemaType>` for customisation.
-4. **Validate with schema:** always call `Schema.parse(...)` on the merged output.
+4. **Validate with schema:** see [Factory Validate and Return Inferred Type](#rule-factory-validate-and-return-inferred-type).
 5. **Export typed return:** return type must match the Zod-inferred type.
-6. **JSDoc:** factories are action-like functions — include `@param` / `@returns`.
+6. <a id="rule-factory-jsdoc"></a>**JSDoc:** factories are action-like functions — include `@param` / `@returns` (the page-object counterpart is [JSDoc on Actions](../../../CLAUDE.md#rule-jsdoc-on-actions)).
 
 ### Phase 3: Add static data
 
@@ -94,7 +90,7 @@ Follow this when Phase 1 pointed at static data. Pick the right tier first.
 
 #### Tier 1 — Universal type-mismatch arrays (already centralised)
 
-Do **not** create a new file. The universal arrays already live at `test-data/static/util/invalid-values.ts`:
+The universal arrays already live at `test-data/static/util/invalid-values.ts`:
 
 ```
 INVALID_STRING_VALUES   → [123, true, null, undefined]
@@ -106,7 +102,7 @@ INVALID_ARRAY_VALUES    → ['string', 123, null, undefined, {}]
 INVALID_OBJECT_VALUES   → ['string', 123, null, undefined, []]
 ```
 
-Import and iterate in spec files; never redefine. See the `api-testing` skill (Phase 6) for the full consumer pattern.
+Import and iterate in spec files, per [Data Strategy](../../../CLAUDE.md#rule-data-strategy). See the `api-testing` skill (Phase 6) for the full consumer pattern.
 
 #### Tier 2 — Domain-specific static data (`test-data/static/{area}/`)
 
@@ -150,7 +146,7 @@ export const INVALID_LOGIN_ATTEMPTS = [
 
 Use Shape B when each row represents a **scenario** with multiple fields that must be tested together.
 
-Always `.ts` with `as const`. Never `.json`. `.ts` gives type safety, `undefined`/`NaN` support, narrow literal autocomplete, JSDoc comments explaining rationale, and compiler-assisted refactors — all lost with JSON.
+Static data is `.ts` with `as const` ([No JSON Static Data](../../../CLAUDE.md#rule-no-json-static-data)); `.ts` gives type safety, `undefined`/`NaN` support, narrow literal autocomplete, JSDoc comments explaining rationale, and compiler-assisted refactors — all lost with JSON.
 
 #### Tier 3 — Field-specific boundary values
 
@@ -197,17 +193,15 @@ for (const invalidValue of INVALID_STRING_VALUES) {
 }
 ```
 
-**Domain-specific static data (Tier 2)** and **field-specific boundary (Tier 3)** — full snippets in `references/examples.md`. Same `for...of` pattern as Tier 1 above; Tier 2 imports a named `as const` export from `test-data/static/{area}/`, Tier 3 declares the array inline.
+**Domain-specific static data (Tier 2)** and **field-specific boundary (Tier 3)** — full snippets in [`references/examples.md`](references/examples.md). Same `for...of` pattern as Tier 1 above; Tier 2 imports a named `as const` export from `test-data/static/{area}/`, Tier 3 declares the array inline.
 
 ### Phase 5: Editing existing static data
 
-When you need to update a value in `test-data/static/`, the change can break existing test assertions and expectations that rely on the old value. **Always search for all consumers before editing.**
-
-**Read the `refactor-values` skill** (`.claude/skills/refactor-values/SKILL.md`) before modifying any existing static-data file or enum value. It owns the impact-analysis + cascading-update workflow.
+When you need to update a value in `test-data/static/`, the change can break existing test assertions and expectations that rely on the old value. Follow [Refactor Impact First](../refactor-values/SKILL.md#rule-refactor-impact-first) before modifying any existing static-data file or enum value; the [refactor-values](../refactor-values/SKILL.md) skill owns the impact-analysis and cascading-update workflow.
 
 ## No Magic Numbers
 
-Do not hardcode timeouts, retry counts, or other tuning numbers inline. The preferred path is web-first assertions — Playwright waits for the condition automatically:
+[No Magic Numbers](../../../CLAUDE.md#rule-no-magic-numbers) covers timeouts, retry counts, and other tuning numbers. The preferred path is web-first assertions ([Assertions](../../../CLAUDE.md#rule-assertions)) — Playwright waits for the condition automatically:
 
 ```typescript
 // FORBIDDEN -- hard wait masks real timing issues
@@ -231,5 +225,5 @@ When a numeric tuning value is genuinely unavoidable:
 - **`enums`** skill — canonical home for app-defined strings (error messages, labels, route paths).
 - **`config`** skill — where timeouts / retries / workers belong (`playwright.config.ts`), not `test-data/`.
 - **`debugging`** skill — when a factory output fails `Schema.parse(...)` or a data-driven loop fails one row out of many, classify and investigate before mutating the factory.
-- **`references/examples.md`** — three worked walkthroughs (new factory, domain-specific invalid set, full negative-API coverage combining factory + universal + boundary) plus Tier 2 + Tier 3 consumption snippets.
-- **`references/troubleshooting.md`** — common data-strategy pitfalls (parallel collisions, factory schema parse failure, inline invalid arrays, Faker-generated app strings, single-string JSON, edits to existing static data, magic-number timeouts).
+- **[`references/examples.md`](references/examples.md)** — three worked walkthroughs (new factory, domain-specific invalid set, full negative-API coverage combining factory + universal + boundary) plus Tier 2 + Tier 3 consumption snippets.
+- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common data-strategy pitfalls (parallel collisions, factory schema parse failure, inline invalid arrays, Faker-generated app strings, single-string JSON, edits to existing static data, magic-number timeouts).

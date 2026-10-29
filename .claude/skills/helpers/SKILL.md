@@ -8,15 +8,14 @@ author: Ivan Davidov
 
 ## Critical
 
-- **Helpers are plain functions.** No Playwright fixture lifecycle — no `use()`, no `base.extend`. If you need setup → `use(data)` → teardown, it's a **fixture**, not a helper (see the `fixtures` skill).
-- **App-specific logic** lives in `helpers/{area}/` (e.g. `helpers/app/`). **Generic utilities** live in `helpers/util/`.
+- <a id="rule-helpers-are-plain-functions"></a>**Helpers are plain functions.** No Playwright fixture lifecycle — no `use()`, no `base.extend`. If you need setup → `use(data)` → teardown, it's a **fixture**, not a helper (see the `fixtures` skill).
+- <a id="rule-helper-location"></a>**App-specific logic** lives in `helpers/{area}/` (e.g. `helpers/app/`). **Generic utilities** live in `helpers/util/`.
 - **ALWAYS** add JSDoc with `@param` and `@returns` on every exported helper.
-- **ALWAYS** specify explicit return types (`Promise<void>`, `string`, etc.). No implicit `any`.
-- **NEVER** hardcode URLs, credentials, or tokens. Read env-driven values from `process.env.*` (see the `config` skill). Use `enums/{area}/*` for endpoint paths and storage-state paths.
-- **ALWAYS** validate API responses inside helpers with the mandatory pattern `expect(SchemaName.parse(body)).toBeTruthy();` — identical to the `api-testing` Critical rule.
-- **Function naming:** camelCase verbs (`createAppStorageState`, `setUserAccessToken`, `formatDate`, `parseCurrency`).
-- **Do not promote a helper to a helper fixture** unless the same setup/teardown is copy-pasted across **3+** spec files and needs guaranteed lifecycle (see the `api-testing` skill, Phase 8 rule of thumb).
-- **Mutating `process.env` from a helper is a narrow exception**, not a general pattern. It is acceptable only for auth-bootstrap helpers that publish a token (e.g. writing `process.env.ACCESS_TOKEN` inside a login helper). Do not copy the env-mutation pattern into other helpers — return values through the function signature instead.
+- **ALWAYS** specify explicit return types (`Promise<void>`, `string`, etc.). No implicit `any`. See [Explicit Return Types](../type-safety/SKILL.md#rule-explicit-return-types).
+- <a id="rule-helper-naming-camelcase-verbs"></a>**Function naming:** camelCase verbs (`createAppStorageState`, `setUserAccessToken`, `formatDate`, `parseCurrency`).
+- Promoting a helper to a helper fixture: [Helper Fixture Promotion](../api-testing/SKILL.md#rule-helper-fixture-promotion-3plus).
+- <a id="rule-helper-env-mutation-exception"></a>**Mutating `process.env` from a helper is a narrow exception**, not a general pattern. It is acceptable only for auth-bootstrap helpers that publish a token (e.g. writing `process.env.ACCESS_TOKEN` inside a login helper). Do not copy the env-mutation pattern into other helpers — return values through the function signature instead.
+- Constitution rules that apply here: [Sources of Truth](../../../CLAUDE.md#rule-sources-of-truth) (URLs and endpoint or storage-state paths), [No Secrets](../../../CLAUDE.md#rule-no-secrets), [Response Validation](../../../CLAUDE.md#rule-response-validation) (API responses validated inside helpers too).
 
 ## File Locations
 
@@ -54,7 +53,7 @@ Prefer **extending an existing file** (`createStorageState.ts`, `util.ts`) over 
 
 Every exported helper must declare:
 
-- An **explicit return type** (`Promise<void>`, `string`, `UserResponse`, etc.). No implicit `any`.
+- An **explicit return type** (`Promise<void>`, `string`, `UserResponse`, etc.); see [Explicit Return Types](../type-safety/SKILL.md#rule-explicit-return-types).
 - **Named parameters** with explicit types.
 - A **JSDoc** block with a description, `@param` for every argument, `@returns`, and — when useful — an `@example` block.
 
@@ -72,7 +71,7 @@ export async function createAppStorageState(): Promise<void> {
 
 ### Phase 4: Read env-driven values from `process.env.*`
 
-Helpers **never** hardcode URLs, credentials, or tokens. Read from `process.env.*` and use enums for endpoint paths / storage-state paths:
+Helpers follow [Sources of Truth](../../../CLAUDE.md#rule-sources-of-truth) and [No Secrets](../../../CLAUDE.md#rule-no-secrets). Read from `process.env.*` and use enums for endpoint paths / storage-state paths:
 
 ```typescript
 import { ApiEndpoints, StorageStatePaths } from '../../enums/app/app';
@@ -92,7 +91,7 @@ See the `config` skill for sources of truth and the `enums` skill for paths.
 
 ### Phase 5: If the helper makes API calls, validate with Zod
 
-The mandatory API response-validation pattern from `api-testing` applies equally inside helpers:
+[Response Validation](../../../CLAUDE.md#rule-response-validation) applies equally inside helpers:
 
 ```typescript
 const { status, body } = await apiRequest<UserResponse>({
@@ -109,7 +108,7 @@ expect(UserResponseSchema.parse(body)).toBeTruthy();
 Rules:
 
 - The generic `<UserResponse>` gives compile-time safety on `body`.
-- `expect(SchemaName.parse(body)).toBeTruthy();` is the exact assertion — not `schema.parse(body)` alone.
+- The assertion is the exact pattern in [Response Validation](../../../CLAUDE.md#rule-response-validation).
 - If the response can legitimately be `null` (e.g., a 204 DELETE), assert `expect(body).toBeNull()` instead.
 
 ### Phase 6: Consume the helper
@@ -155,8 +154,8 @@ User says: _"I want to write a helper that creates a test user before each test 
 Actions:
 
 1. **Phase 1** — "Creates before, deletes after" = Playwright lifecycle → **fixture**, not a helper.
-2. Stop. Route to the `fixtures` skill + the `api-testing` skill (Phase 8) and promote only if the setup/teardown is reused across **3+** spec files.
-3. If it's used in only 1–2 files, keep it inline in `beforeEach` / `afterEach` using `apiRequest` directly.
+2. Stop. Route to the `fixtures` skill + the `api-testing` skill (Phase 8); promotion follows [Helper Fixture Promotion](../api-testing/SKILL.md#rule-helper-fixture-promotion-3plus).
+3. Below that threshold, keep it inline in `beforeEach` / `afterEach` using `apiRequest` directly.
 
 ## Troubleshooting
 
@@ -173,16 +172,16 @@ Fix: Confirm Playwright's project dependencies are wired so `tests/{area}/auth.s
 
 **My API helper calls `schema.parse(body)` without wrapping in `expect(...).toBeTruthy()`.**
 Cause: Old pattern.
-Fix: Replace with `expect(SchemaName.parse(body)).toBeTruthy();` — identical to the `api-testing` Critical rule.
+Fix: Use the exact pattern from [Response Validation](../../../CLAUDE.md#rule-response-validation).
 
 **I want to mutate `process.env` inside a new helper for convenience.**
 Fix: Don't. The `setUserAccessToken` env mutation is a sanctioned auth-bootstrap exception. For any other case, pass values through return types or factory overrides — env mutation hides state and breaks parallel isolation.
 
 **I'm about to promote a one-off helper to a helper fixture because "it feels reusable".**
-Fix: Promote only when the same setup/teardown is copy-pasted across **3+** spec files with a lifecycle need. Otherwise keep it as a helper or an inline `apiRequest` call (see the `api-testing` skill, Phase 8 rule of thumb).
+Fix: Promotion follows [Helper Fixture Promotion](../api-testing/SKILL.md#rule-helper-fixture-promotion-3plus). Otherwise keep it as a helper or an inline `apiRequest` call.
 
 **TypeScript complains that my helper has an implicit `any` return type.**
-Fix: Add an explicit return type (`Promise<void>`, `Promise<UserResponse>`, `string`, etc.) — Critical rule.
+Fix: Add an explicit return type (`Promise<void>`, `Promise<UserResponse>`, `string`, etc.); see [Explicit Return Types](../type-safety/SKILL.md#rule-explicit-return-types).
 
 ## See Also
 

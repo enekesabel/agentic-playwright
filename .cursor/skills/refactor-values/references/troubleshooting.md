@@ -8,7 +8,7 @@
 ## TypeScript complains `Property LOGIN_ERROR does not exist on type Messages`
 
 **Cause:** Missed consumer after a key rename.
-**Fix:** Run `npx tsc --noEmit` and fix every location it reports. Then search `.md` / `.cursor/rules/*` / `.cursor/skills/*` for the old key name in documentation.
+**Fix:** Run `npx tsc --noEmit` and fix every location it reports. Then search `.md` files for the old key name in documentation.
 
 ## `npx playwright test --grep 'login'` didn't run my test
 
@@ -18,9 +18,9 @@
 ## Zod schema throws `Invalid literal value` after updating an enum value
 
 **Cause:** The schema still has `z.literal('old-value')` or `z.enum([..., 'old-value'])`.
-**Fix:** Update the literal/enum to the new value. Do **not** relax to `z.string()` — that hides future drift (see Anti-Pattern 4 in `SKILL.md`).
+**Fix:** Update the literal/enum to the new value. Do not relax to `z.string()` ([Explore Before Generate](../../../rules/rules.mdc#rule-explore-before-generate)) — that hides future drift (see Anti-Pattern 4 in [`SKILL.md`](../SKILL.md)).
 
 ## My global find-and-replace missed matches in README / skill files / rules
 
 **Cause:** Find-and-replace scoped to source files misses documentation.
-**Fix:** Re-grep without file-type filters (`rg "OLD_VALUE"` plain), inspect each hit individually, and update `README.md`, `CHANGELOG.md`, `.cursor/rules/rules.mdc`, and `.cursor/skills/*` where they reference the renamed/updated value.
+**Fix:** ([No Global Find Replace](../SKILL.md#rule-no-global-find-replace)) Re-grep without file-type filters (`rg "OLD_VALUE"` plain), inspect each hit individually, and update `README.md`, `CHANGELOG.md`, and any `.cursor/skills/*` doc that references the renamed/updated value.

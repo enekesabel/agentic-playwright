@@ -2,12 +2,12 @@
 
 ## A breaking API change slipped through — tests pass but production fails
 
-**Cause:** Schema used `z.object()` instead of `z.strictObject()`. Extra fields were silently stripped; missing fields were silently `undefined`.
+**Cause:** Schema used `z.object()` instead of `z.strictObject()` ([Strict Schemas](../../../rules/rules.mdc#rule-strict-schemas)). Extra fields were silently stripped; missing fields were silently `undefined`.
 **Fix:** Switch the schema to `z.strictObject()`. Re-run tests — the contract drift will now surface as `ZodError`.
 
 ## TypeScript says `process.env.X` is `string | undefined`
 
-**Fix:** Apply `!` (`process.env.X!`) when the value is guaranteed at runtime, or `??` with a safe fallback (`process.env.X ?? 'default'`). Never let `string | undefined` spread into downstream code.
+**Fix:** Apply `!` (`process.env.X!`) when the value is guaranteed at runtime, or `??` with a safe fallback (`process.env.X ?? 'default'`). See [Process Env Typing](../SKILL.md#rule-process-env-typing).
 
 ## I silenced a compile error with `as unknown as T`
 
@@ -22,12 +22,12 @@
 ## `expect(Schema.parse(body)).toBeTruthy()` throws `ZodError`
 
 **Cause:** The API response genuinely disagrees with the schema (contract drift, undocumented optional field, wrong nullability).
-**Fix:** This is a real bug — follow the `api-testing` skill (Phase 7): keep the test as the spec says, wrap with `test.skip` + `// FIXME: <ticket-url>`, and report the discrepancy. Do not loosen the schema to make the error go away; see the `refactor-values` skill (Anti-Pattern 4) for why.
+**Fix:** This is a real bug — follow the `api-testing` skill (Phase 7): keep the test as the spec says, wrap with `test.skip` + `// FIXME: <ticket-url>`, and report the discrepancy. Do not loosen the schema to make the error go away ([Explore Before Generate](../../../rules/rules.mdc#rule-explore-before-generate)); see the `refactor-values` skill (Anti-Pattern 4) for why.
 
 ## I'm repeating `{ success, message, data, errors }` across multiple schemas
 
 **Cause:** The same envelope appears across many endpoints in one domain.
-**Fix:** Extract a per-domain shared envelope as a `z.strictObject` (e.g. `fixtures/api/schemas/{area}/_envelope.ts`) and compose with `.extend(...)` only when the repetition is real and observed across 3+ schemas. Do **not** create a generic envelope factory — schemas should remain a 1:1 mirror of the documented OpenAPI contract per endpoint.
+**Fix:** Extract a per-domain shared envelope as a `z.strictObject` (e.g. `fixtures/api/schemas/{area}/_envelope.ts`) and compose with `.extend(...)` only when the repetition is real and observed across 3+ schemas. See [No Envelope Factory](../SKILL.md#rule-no-envelope-factory): schemas remain a 1:1 mirror of the documented OpenAPI contract per endpoint.
 
 ## My function has implicit `any` parameters but strict mode isn't complaining
 
