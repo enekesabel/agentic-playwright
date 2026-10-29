@@ -289,5 +289,5 @@ test(
 - **`common-tasks`** skill — prompt templates for "Add a New Page Object (With / Without Exploration)" and "Add Locators to Existing Page".
 - **`api-testing`** skill — helper fixtures and factories used from page-object tests.
 - **`debugging`** skill — when a test using this page object fails, classify the failure (TimeoutError on action, locator returned multiple, etc.) and use the right tool to investigate before changing the page object.
-- **[`references/examples.md`](references/examples.md)** — three end-to-end walkthroughs (new page, locator addition, component extraction).
-- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common page-object pitfalls and their fixes.
+- **[`references/examples.md`](page-objects/references/examples.md)** — three end-to-end walkthroughs (new page, locator addition, component extraction).
+- **[`references/troubleshooting.md`](page-objects/references/troubleshooting.md)** — common page-object pitfalls and their fixes.

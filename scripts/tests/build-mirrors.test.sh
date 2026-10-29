@@ -67,8 +67,12 @@ fi
 cat >>"${SCRATCH}/.claude/skills/fixtures/SKILL.md" <<'MD'
 
 Sentinel paragraph: read `.claude/skills/enums/SKILL.md` and the `CLAUDE.md` Constitution, see [Role](../../../CLAUDE.md#role), [Enums](../enums/SKILL.md), [Examples](references/examples.md) and [Contributing](../../../CONTRIBUTING.md).
+Quoted link in code: `[reviewer](../pr-reviewer/SKILL.md)` stays text. Angle target: [Angle](<references/examples.md>).
 MD
+printf '\nSee [vendored reference](references/request-mocking.md).\n' >>"${SCRATCH}/.claude/skills/playwright-cli/SKILL.md"
 build
+assert_contains '.github/instructions/playwright-cli.instructions.md' '[vendored reference](playwright-cli/references/request-mocking.md)' 'Copilot rewrites vendored link targets'
+assert_contains '.cursor/skills/playwright-cli/SKILL.md' '[vendored reference](references/request-mocking.md)' 'Cursor preserves relative vendored links'
 
 cursor_skill=".cursor/skills/fixtures/SKILL.md"
 assert_contains "${cursor_skill}" 'Sentinel paragraph' "Cursor skill carries the canonical edit"
@@ -85,7 +89,9 @@ assert_contains "${copilot_skill}" '`.github/instructions/enums.instructions.md`
 assert_contains "${copilot_skill}" 'the `.github/copilot-instructions.md` Constitution' "Copilot rewrites CLAUDE.md mentions"
 assert_contains "${copilot_skill}" '[Role](../copilot-instructions.md#role)' "Copilot link to the Constitution targets copilot-instructions.md"
 assert_contains "${copilot_skill}" '[Enums](enums.instructions.md)' "Copilot link to a sibling skill targets its flat file"
-assert_contains "${copilot_skill}" '[Examples](references/examples.md)' "Copilot keeps the flat-form references/ link"
+assert_contains "${copilot_skill}" '[Examples](fixtures/references/examples.md)' "Copilot rewrites the flat-form references/ link"
+assert_contains "${copilot_skill}" '`[reviewer](../pr-reviewer/SKILL.md)`' "Copilot leaves a link quoted in inline code untouched"
+assert_contains "${copilot_skill}" '[Angle](fixtures/references/examples.md)' "Copilot rewrites an angle-bracket link target"
 assert_contains "${copilot_skill}" '[Contributing](../../CONTRIBUTING.md)' "Copilot link to a root doc still resolves"
 assert_contains ".github/instructions/fixtures/references/examples.md" '# ' "Copilot tree carries the skill's reference files"
 if [[ -z "$(git -C "${SCRATCH}" status --porcelain -- .github/skills .github/prompts)" ]]; then

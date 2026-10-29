@@ -138,7 +138,7 @@ Skills are at `.github/instructions/{name}.instructions.md`. Read the relevant s
 - **Link to the home instead of restating.** Anywhere else, mention the rule as a relative Markdown link whose text is the rule's name, for example [No Hard Waits](#rule-no-hard-waits). Every Constitution row carries an inline anchor `rule-<slug>`, the rule name in lowercase kebab-case.
 - **Gates link too.** A script, hook or config that enforces a rule names it in a comment with a relative `file#anchor` reference.
 - **The Cursor and Copilot trees are generated.** The Claude tree is canonical; edit it and run `npm run build:mirrors` to regenerate the other two. The pre-commit hook runs the build when a canonical file is staged.
-- **What the gates check.** `npm run check:skills` fails on a link to a missing file, an anchor that matches no heading or inline anchor, a reference file its skill does not link, a Skills Index that disagrees with the skill folders, or a skill whose frontmatter name does not match its folder. `npm run check:mirrors` fails when the committed mirrors differ from a fresh build. `npm run check:all` runs every gate in one go.
+- **What the gates check.** `npm run check:skills` fails on a rule-tree Markdown file named in prose instead of linked, a reference-style link definition, a link to a missing file, an anchor that matches no heading or inline anchor, a reference file its skill does not link, a Skills Index that disagrees with the skill folders, or a skill whose frontmatter name does not match its folder. `npm run check:mirrors` fails when the committed mirrors differ from a fresh build. `npm run check:all` runs every gate in one go.
 
 ---
 

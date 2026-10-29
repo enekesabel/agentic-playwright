@@ -86,12 +86,12 @@ npm test                                                 # all non-destructive
 
 Split by theme under `templates/` so the agent loads only the slice it needs — open the file matching your Phase 1 category, copy the block, and replace every `[PLACEHOLDER]` and `{area}` with concrete values.
 
-- [Page object templates](references/templates/page-objects.md) — new page object (with / without exploration), add locators, add action method
-- [Test templates](references/templates/tests.md) — functional, E2E, data-driven, and API tests
-- [API schema templates](references/templates/api-schemas.md) — Zod schema from docs, fallback capture, add fields
-- [Data templates](references/templates/data.md) — Faker factory and static test data
-- [Fixture templates](references/templates/fixtures.md) — page-object fixture, helper fixture, fixture category
-- [Component templates](references/templates/components.md) — reusable UI component
+- [Page object templates](common-tasks/references/templates/page-objects.md) — new page object (with / without exploration), add locators, add action method
+- [Test templates](common-tasks/references/templates/tests.md) — functional, E2E, data-driven, and API tests
+- [API schema templates](common-tasks/references/templates/api-schemas.md) — Zod schema from docs, fallback capture, add fields
+- [Data templates](common-tasks/references/templates/data.md) — Faker factory and static test data
+- [Fixture templates](common-tasks/references/templates/fixtures.md) — page-object fixture, helper fixture, fixture category
+- [Component templates](common-tasks/references/templates/components.md) — reusable UI component
 
 ## See Also
 
@@ -105,5 +105,5 @@ Split by theme under `templates/` so the agent loads only the slice it needs —
 - **`type-safety`** — Zod 4 validators + the `expect(Schema.parse(body)).toBeTruthy()` rule; load before any schema work.
 - **`debugging`** — load on Phase 4 verification red.
 - **`refactor-values`** — load when a template would change an existing enum value or static-data row.
-- **[`references/examples.md`](references/examples.md)** — three end-to-end multi-skill chains using the templates.
-- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common pitfalls when filling templates and how to fix.
+- **[`references/examples.md`](common-tasks/references/examples.md)** — three end-to-end multi-skill chains using the templates.
+- **[`references/troubleshooting.md`](common-tasks/references/troubleshooting.md)** — common pitfalls when filling templates and how to fix.

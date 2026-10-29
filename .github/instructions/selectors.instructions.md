@@ -142,7 +142,7 @@ Every page object that covers a form or CRUD operation includes selectors for th
 
 > The `Messages.*` values shown above are **illustrative placeholders**. Use the real enum members from your scaffold's `enums/{area}/*.ts` (e.g. `Messages.LOGIN_SUCCESS`, `Messages.LOGIN_ERROR`, `Messages.REQUIRED_FIELD`). Capture the exact rendered text with `playwright-cli` first and encode it via the `enums` skill.
 
-For a full worked code example (page object class with form + feedback locators + action method, plus how the test asserts on it), see [`references/feedback-selectors-example.md`](references/feedback-selectors-example.md).
+For a full worked code example (page object class with form + feedback locators + action method, plus how the test asserts on it), see [`references/feedback-selectors-example.md`](selectors/references/feedback-selectors-example.md).
 
 ### Forbidden: Page objects without feedback selectors
 
@@ -155,6 +155,6 @@ A page object without those selectors breaks [No Feedback-Less POM](../copilot-i
 - **`enums`** skill — where `Messages.*`, `ApiEndpoints.*`, and other app-defined strings live; live-text verification workflow.
 - **`common-tasks`** skill — prompt templates for "Add a New Page Object (With / Without Exploration)" that chain into this skill.
 - **`debugging`** skill — strict-mode violations (locator matched multiple), "element not found" / "not attached", and other locator-driven test failures.
-- **[`references/examples.md`](references/examples.md)** — three worked examples (new login page, adding feedback selectors, getByRole vs getByLabel decision).
-- **[`references/feedback-selectors-example.md`](references/feedback-selectors-example.md)** — full page-object code pattern with feedback locators and assertion usage.
-- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common selector pitfalls (multi-match, XPath temptation, stale locators, missing feedback) and their fixes.
+- **[`references/examples.md`](selectors/references/examples.md)** — three worked examples (new login page, adding feedback selectors, getByRole vs getByLabel decision).
+- **[`references/feedback-selectors-example.md`](selectors/references/feedback-selectors-example.md)** — full page-object code pattern with feedback locators and assertion usage.
+- **[`references/troubleshooting.md`](selectors/references/troubleshooting.md)** — common selector pitfalls (multi-match, XPath temptation, stale locators, missing feedback) and their fixes.

@@ -191,7 +191,7 @@ for (const invalidValue of INVALID_STRING_VALUES) {
 }
 ```
 
-**Domain-specific static data (Tier 2)** and **field-specific boundary (Tier 3)** — full snippets in [`references/examples.md`](references/examples.md). Same `for...of` pattern as Tier 1 above; Tier 2 imports a named `as const` export from `test-data/static/{area}/`, Tier 3 declares the array inline.
+**Domain-specific static data (Tier 2)** and **field-specific boundary (Tier 3)** — full snippets in [`references/examples.md`](data-strategy/references/examples.md). Same `for...of` pattern as Tier 1 above; Tier 2 imports a named `as const` export from `test-data/static/{area}/`, Tier 3 declares the array inline.
 
 ### Phase 5: Editing existing static data
 
@@ -223,5 +223,5 @@ When a numeric tuning value is genuinely unavoidable:
 - **`enums`** skill — canonical home for app-defined strings (error messages, labels, route paths).
 - **`config`** skill — where timeouts / retries / workers belong (`playwright.config.ts`), not `test-data/`.
 - **`debugging`** skill — when a factory output fails `Schema.parse(...)` or a data-driven loop fails one row out of many, classify and investigate before mutating the factory.
-- **[`references/examples.md`](references/examples.md)** — three worked walkthroughs (new factory, domain-specific invalid set, full negative-API coverage combining factory + universal + boundary) plus Tier 2 + Tier 3 consumption snippets.
-- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common data-strategy pitfalls (parallel collisions, factory schema parse failure, inline invalid arrays, Faker-generated app strings, single-string JSON, edits to existing static data, magic-number timeouts).
+- **[`references/examples.md`](data-strategy/references/examples.md)** — three worked walkthroughs (new factory, domain-specific invalid set, full negative-API coverage combining factory + universal + boundary) plus Tier 2 + Tier 3 consumption snippets.
+- **[`references/troubleshooting.md`](data-strategy/references/troubleshooting.md)** — common data-strategy pitfalls (parallel collisions, factory schema parse failure, inline invalid arrays, Faker-generated app strings, single-string JSON, edits to existing static data, magic-number timeouts).

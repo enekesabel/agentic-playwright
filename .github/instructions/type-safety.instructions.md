@@ -255,5 +255,5 @@ Do not disable or weaken strict mode for a single file. If a type feels impossib
 - **`refactor-values`** skill — safe workflow for changing enum values referenced by `z.literal(...)` or `z.enum([...])`; Anti-Pattern 4 forbids loosening schemas to accommodate drift.
 - **`helpers`** skill — helpers that call APIs follow [Response Validation](../copilot-instructions.md#rule-response-validation) too (Phase 5).
 - **`debugging`** skill — when `expect(Schema.parse(body)).toBeTruthy()` throws `ZodError`, or when a `zInput` / `zOutput` mismatch produces an unexpected runtime error.
-- **[`references/examples.md`](references/examples.md)** — three worked examples (new schema + test, `zInput` vs `zOutput` with defaults, replacing `as T` casts with Zod parse).
-- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common type-safety pitfalls (`z.object()` drift, `process.env` widening, unsafe casts, `zInput` vs `zOutput` confusion, ZodError on contract violations, manual envelope repetition, implicit any in parameters).
+- **[`references/examples.md`](type-safety/references/examples.md)** — three worked examples (new schema + test, `zInput` vs `zOutput` with defaults, replacing `as T` casts with Zod parse).
+- **[`references/troubleshooting.md`](type-safety/references/troubleshooting.md)** — common type-safety pitfalls (`z.object()` drift, `process.env` widening, unsafe casts, `zInput` vs `zOutput` confusion, ZodError on contract violations, manual envelope repetition, implicit any in parameters).

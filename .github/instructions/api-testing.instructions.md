@@ -235,7 +235,7 @@ test(
 );
 ```
 
-**Forbidden pattern:** multiple API calls inside a single `test` body **without** `test.step` wrappers — the trace shows one big test, debugging which call failed requires reading the assertions, and reporting can't surface create-vs-get-vs-delete structure. For the full anti-pattern code block see [`references/test-step-patterns.md`](references/test-step-patterns.md).
+**Forbidden pattern:** multiple API calls inside a single `test` body **without** `test.step` wrappers — the trace shows one big test, debugging which call failed requires reading the assertions, and reporting can't surface create-vs-get-vs-delete structure. For the full anti-pattern code block see [`references/test-step-patterns.md`](api-testing/references/test-step-patterns.md).
 
 **Single API call exception:** If a test contains **only one** API call, `test.step` is optional but recommended for consistency.
 
@@ -281,7 +281,7 @@ Every endpoint that accepts a request body (POST, PUT, PATCH) requires systemati
 
 **Universal invalid arrays** live as `as const` exports in `test-data/static/util/invalid-values.ts` — `INVALID_STRING_VALUES`, `INVALID_UUID_VALUES`, `INVALID_NUMBER_VALUES`, `INVALID_BOOLEAN_VALUES`, `INVALID_ENUM_VALUES`, `INVALID_ARRAY_VALUES`, `INVALID_OBJECT_VALUES`. Import them; never redefine inline ([Data Strategy](../copilot-instructions.md#rule-data-strategy)).
 
-**Patterns to use** (full code in [`references/negative-testing.md`](references/negative-testing.md)):
+**Patterns to use** (full code in [`references/negative-testing.md`](api-testing/references/negative-testing.md)):
 
 - **`for...of` spread-and-override** — base valid payload, override one field at a time with `INVALID_*` values, assert `400` + `BadRequestResponseSchema.parse(body)`.
 - **Omitting required fields** — destructure + rest (`const { [field]: _, ...rest } = validPayload`) per required field.
@@ -293,9 +293,9 @@ Every endpoint that accepts a request body (POST, PUT, PATCH) requires systemati
 2. **Domain-specific curated invalid sets** (invalid emails, weak passwords, forbidden categories) → `test-data/static/{area}/*.ts` (`as const`). Import; never inline. Never `.json`.
 3. **Field-specific boundary / range values** used in exactly one field → **inline** in the spec. Promote to static data only when reused across 2+ fields or spec files.
 
-A typical validation describe combines tier 1 and tier 3 in separate `for...of` loops. For full code blocks, the `INVALID_*` constants table, and the email-field type-vs-format combination rule, see [`references/negative-testing.md`](references/negative-testing.md).
+A typical validation describe combines tier 1 and tier 3 in separate `for...of` loops. For full code blocks, the `INVALID_*` constants table, and the email-field type-vs-format combination rule, see [`references/negative-testing.md`](api-testing/references/negative-testing.md).
 
-**Empty-body-only validation** is the anti-pattern behind [No Empty-Body-Only 400](../copilot-instructions.md#rule-no-empty-body-only-400): a single `body: {}` test asserting `400` leaves every field untested. Full anti-pattern in [`references/test-step-patterns.md`](references/test-step-patterns.md).
+**Empty-body-only validation** is the anti-pattern behind [No Empty-Body-Only 400](../copilot-instructions.md#rule-no-empty-body-only-400): a single `body: {}` test asserting `400` leaves every field untested. Full anti-pattern in [`references/test-step-patterns.md`](api-testing/references/test-step-patterns.md).
 
 ### Phase 7: Handle behavior mismatches
 
@@ -324,7 +324,7 @@ test.skip(
 
 For **critical, recurring setup/teardown operations** that multiple tests depend on (e.g., creating a user account that several test files need as a precondition, or seeding complex data that must be cleaned up), use helper fixtures in `fixtures/helper/helper-fixture.ts`.
 
-Helper fixtures wrap the `apiRequest` plain function with Playwright's fixture lifecycle: setup before `await use(...)`, yield via `use(data)`, teardown after — runs even if the test fails. For the full code pattern see [`references/helper-fixture-example.md`](references/helper-fixture-example.md).
+Helper fixtures wrap the `apiRequest` plain function with Playwright's fixture lifecycle: setup before `await use(...)`, yield via `use(data)`, teardown after — runs even if the test fails. For the full code pattern see [`references/helper-fixture-example.md`](api-testing/references/helper-fixture-example.md).
 
 **When to use `apiRequest` fixture vs. helper fixture:**
 
@@ -365,8 +365,8 @@ fixtures/
 - **`helpers`** skill — auth bootstrap (`createAppStorageState`, `setUserAccessToken`) that publishes `process.env.ACCESS_TOKEN` consumed by API tests.
 - **`test-standards`** skill — `@api` tag and test structure; [API Test Steps](../copilot-instructions.md#rule-api-test-steps) and [No Multiple Tags](../copilot-instructions.md#rule-no-multiple-tags) are Constitution rules.
 - **`refactor-values`** skill — when an endpoint enum value or a Zod literal needs to change, the impact-analysis workflow.
-- **[`references/examples.md`](references/examples.md)** — three end-to-end walkthroughs (new endpoint, multi-step workflow, validation lockdown).
-- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common API-testing pitfalls (ZodError, 401/null body, status-code drift, empty-body-only coverage, hardcoded URLs/tokens).
-- **[`references/negative-testing.md`](references/negative-testing.md)** — full Phase 6 code blocks (per-field invalid-type, omitting required fields, path-parameter validation), the `INVALID_*` constants table, and the three-tier rule.
-- **[`references/test-step-patterns.md`](references/test-step-patterns.md)** — full anti-pattern code blocks for Phase 4 (multi-call without `test.step`) and Phase 6 (empty-body-only validation).
-- **[`references/helper-fixture-example.md`](references/helper-fixture-example.md)** — full lifecycle-wired helper-fixture code pattern from Phase 8.
+- **[`references/examples.md`](api-testing/references/examples.md)** — three end-to-end walkthroughs (new endpoint, multi-step workflow, validation lockdown).
+- **[`references/troubleshooting.md`](api-testing/references/troubleshooting.md)** — common API-testing pitfalls (ZodError, 401/null body, status-code drift, empty-body-only coverage, hardcoded URLs/tokens).
+- **[`references/negative-testing.md`](api-testing/references/negative-testing.md)** — full Phase 6 code blocks (per-field invalid-type, omitting required fields, path-parameter validation), the `INVALID_*` constants table, and the three-tier rule.
+- **[`references/test-step-patterns.md`](api-testing/references/test-step-patterns.md)** — full anti-pattern code blocks for Phase 4 (multi-call without `test.step`) and Phase 6 (empty-body-only validation).
+- **[`references/helper-fixture-example.md`](api-testing/references/helper-fixture-example.md)** — full lifecycle-wired helper-fixture code pattern from Phase 8.

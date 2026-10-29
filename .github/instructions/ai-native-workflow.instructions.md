@@ -6,7 +6,7 @@ applyTo: '**/*'
 
 Routing layer between user intent and the specialized skills that own the rules. Load first on every non-trivial task.
 
-For deeper context: see [`references/three-layer-model.md`](references/three-layer-model.md), [`references/conversation-contract.md`](references/conversation-contract.md), [`references/principles.md`](references/principles.md), [`references/examples.md`](references/examples.md), [`references/troubleshooting.md`](references/troubleshooting.md).
+For deeper context: see [`references/three-layer-model.md`](ai-native-workflow/references/three-layer-model.md), [`references/conversation-contract.md`](ai-native-workflow/references/conversation-contract.md), [`references/principles.md`](ai-native-workflow/references/principles.md), [`references/examples.md`](ai-native-workflow/references/examples.md), [`references/troubleshooting.md`](ai-native-workflow/references/troubleshooting.md).
 
 ## Critical
 
@@ -91,7 +91,7 @@ If intent matches none of the above → default to `common-tasks` or ask the use
 - Two valid approaches with meaningful trade-offs (architectural decisions belong to the human).
 - <a id="rule-raise-conflict-dont-bypass"></a>A skill's Critical rule conflicts with the user's request (raise it; never silently bypass).
 
-For the full conversation contract (audit-then-edit details, refusal triggers), see [`references/conversation-contract.md`](references/conversation-contract.md).
+For the full conversation contract (audit-then-edit details, refusal triggers), see [`references/conversation-contract.md`](ai-native-workflow/references/conversation-contract.md).
 
 ## Common Critical Rules to Re-Check in Phase 6
 
@@ -114,8 +114,8 @@ For the full conversation contract (audit-then-edit details, refusal triggers), 
 - **`page-objects`**, **`selectors`**, **`playwright-cli`** — UI authoring chain.
 - **`test-standards`**, **`data-strategy`**, **`type-safety`**, **`enums`**, **`config`**, **`fixtures`**, **`helpers`** — rest of the suite.
 - **`skill-creator`** — authoring/improving/evaluating the skills themselves (meta-work on this suite).
-- **[`references/three-layer-model.md`](references/three-layer-model.md)** — how orchestrator / specialized skills / code conventions layer.
-- **[`references/conversation-contract.md`](references/conversation-contract.md)** — audit-then-edit, when to ask vs do, when to refuse.
-- **[`references/principles.md`](references/principles.md)** — the five principles that make the scaffold AI-native.
-- **[`references/examples.md`](references/examples.md)** — three end-to-end multi-skill chains (API test, refactor, CI failure).
-- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common agent failure modes and fixes.
+- **[`references/three-layer-model.md`](ai-native-workflow/references/three-layer-model.md)** — how orchestrator / specialized skills / code conventions layer.
+- **[`references/conversation-contract.md`](ai-native-workflow/references/conversation-contract.md)** — audit-then-edit, when to ask vs do, when to refuse.
+- **[`references/principles.md`](ai-native-workflow/references/principles.md)** — the five principles that make the scaffold AI-native.
+- **[`references/examples.md`](ai-native-workflow/references/examples.md)** — three end-to-end multi-skill chains (API test, refactor, CI failure).
+- **[`references/troubleshooting.md`](ai-native-workflow/references/troubleshooting.md)** — common agent failure modes and fixes.

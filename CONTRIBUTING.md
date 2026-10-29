@@ -9,7 +9,7 @@ This repository is unusual in one important way: **the AI rule trees are part of
 That means contributions are checked by more gates than a typical repo:
 
 1. **ESLint + Prettier + `tsc --noEmit`** — standard code quality.
-2. **Skill lint (`npm run check:skills`)** — the Skills Index matches the skill folders on disk, every `SKILL.md` frontmatter has a matching `name` and a `description`, and every relative link and `file#anchor` reference in the rule trees, root docs and gate scripts resolves.
+2. **Skill lint (`npm run check:skills`)** — the Skills Index matches the skill folders on disk, every `SKILL.md` frontmatter has a matching `name` and a `description`, every inline Markdown link in the rule trees and root docs and every bare `file.md#anchor` reference in gate scripts and config resolves, reference-style link definitions are rejected, and a rule-tree Markdown file named in prose instead of linked fails.
 3. **Mirror check (`npm run check:mirrors`)** — the Cursor (`.cursor/`) and Copilot (`.github/`) trees are generated from [`CLAUDE.md`](CLAUDE.md) and `.claude/skills/`; the check fails if the committed mirrors differ from a fresh build.
 4. **Version single-sourcing (`npm run check:version`)** — `VERSION`, `package.json`, and the latest `CHANGELOG.md` heading must agree.
 

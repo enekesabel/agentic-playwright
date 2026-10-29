@@ -172,5 +172,5 @@ Use `apiRequest` directly for all API calls in tests; promotion to a helper fixt
 - **`playwright-cli`** skill — how to run the live-app exploration before building the page object.
 - **`common-tasks`** skill — prompt templates for "Add a New Page Object Fixture", "Add a Helper Fixture", "Add a New Fixture Category".
 - **`debugging`** skill — `appPage is undefined` / `cannot read property of undefined` / fixture-lifecycle / merge-not-applied failures live here.
-- **[`references/examples.md`](references/examples.md)** — three worked walkthroughs (new page-object fixture, when NOT to create a fixture for a one-off call, brand-new fixture category).
-- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common fixture pitfalls (wrong `test` import, fixture creep, teardown not running, missing `mergeTests`, helper-vs-fixture decision, manual instantiation temptation).
+- **[`references/examples.md`](fixtures/references/examples.md)** — three worked walkthroughs (new page-object fixture, when NOT to create a fixture for a one-off call, brand-new fixture category).
+- **[`references/troubleshooting.md`](fixtures/references/troubleshooting.md)** — common fixture pitfalls (wrong `test` import, fixture creep, teardown not running, missing `mergeTests`, helper-vs-fixture decision, manual instantiation temptation).

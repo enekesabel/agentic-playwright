@@ -257,5 +257,5 @@ When the test passes locally but fails in CI, you need CI's artifacts to reprodu
 - **`config`** skill — env file selection (`ENVIRONMENT`), `process.env.*` correctness, where `APP_URL` / `API_URL` are sourced.
 - **`common-tasks`** skill — Phase 7 (Run tests) routes failures here; verification checklist.
 - **`ai-native-workflow`** skill — the meta workflow: how to ask, how to escalate, how to commit a fix, and the audit-then-edit pattern that keeps debugging sessions consistent across agents.
-- **[`references/examples.md`](references/examples.md)** — four worked debug scenarios (action timeout, ZodError contract drift, suite-only failure, CI-only failure).
-- **[`references/troubleshooting.md`](references/troubleshooting.md)** — common debugging pitfalls (missing trace, stale report, committed `test.only`, UI Mode resource use, timeout bump, suppressed `expect`, flake diagnosis, destructive leak, cross-browser).
+- **[`references/examples.md`](debugging/references/examples.md)** — four worked debug scenarios (action timeout, ZodError contract drift, suite-only failure, CI-only failure).
+- **[`references/troubleshooting.md`](debugging/references/troubleshooting.md)** — common debugging pitfalls (missing trace, stale report, committed `test.only`, UI Mode resource use, timeout bump, suppressed `expect`, flake diagnosis, destructive leak, cross-browser).

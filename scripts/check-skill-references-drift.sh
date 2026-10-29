@@ -19,18 +19,18 @@
 #   2. Broken anchor    -- the #anchor matches neither a heading slug (GitHub
 #                          style, any level) nor an inline <a id="..."> /
 #                          <a name="..."> in the target file.
-#   3. Orphan reference -- a skill's references/*.md file is not mentioned by
-#                          the skill's entry file (README.md is exempt).
+#   3. Orphan reference -- a non-vendored skill entry does not link to one of
+#                          its references/**/*.md files (README.md exempt).
+#   4. Path in prose   -- a backticked path names an existing rule-tree Markdown
+#                          file instead of linking it. Vendored prose is exempt.
+#   5. Reference-style  -- a [label]: target definition. Only inline links are
+#      definition          accepted, so one syntax resolves everywhere.
 #
-# Paths resolve relative to the containing file. Two shapes kept from the
-# original references lint, for skill entry files only:
-#   - a bare `references/...` token (usually in backticks) counts as a link,
-#     resolved against the skill directory;
-#   - in a flat Copilot file .github/instructions/<name>.instructions.md, a
-#     path starting with references/ resolves against the sibling <name>/
-#     folder, which is where that layout keeps its reference files.
-# Absolute URLs are skipped. Fenced code blocks and inline code spans are
-# ignored when extracting Markdown links and headings.
+# Paths resolve relative to the containing file, or from the repository root
+# for repo-relative prose mentions. Only Markdown links count for orphans.
+# Vendored skills are read from skills-lock.json; their links are still checked.
+# Absolute URLs, fenced code (closed only by a matching fence marker) and inline
+# code are ignored; <angle-bracket> targets are read without the brackets.
 #
 # Semantic drift (a rule contradicted by an example) needs an LLM and is out
 # of scope for this lint.
@@ -61,8 +61,12 @@ list_files() {
 # "<line>\t<target>" for every Markdown link target outside code.
 extract_md_links() {
     LC_ALL=C awk '
-        /^[ \t]*(```|~~~)/ { fence = !fence; next }
-        fence { next }
+        /^[ \t]*(```+|~~~+)/ {
+            m = $0; sub(/^[ \t]*/, "", m); match(m, /^(`+|~+)/); mk = substr(m, 1, RLENGTH)
+            if (fence == "") { fence = mk; next }
+            if (substr(mk, 1, 1) == substr(fence, 1, 1) && length(mk) >= length(fence)) { fence = ""; next }
+        }
+        fence != "" { next }
         {
             l = $0
             gsub(/`[^`]*`/, "", l)
@@ -87,12 +91,93 @@ extract_bare_anchor_tokens() {
         }' "$1"
 }
 
-# "<line>\t<token>" for every bare references/... token in a skill entry file,
-# outside Markdown link targets (those are covered by extract_md_links).
-extract_reference_tokens() {
-    sed -E 's/\]\([^)]*\)/]/g' "$1" \
-        | grep -noE '(^|[^/A-Za-z0-9._-])references/[A-Za-z0-9._/-]+(#[A-Za-z0-9._-]+)?' \
-        | sed -E 's/^([0-9]+):[^r]?/\1	/; s/\.+$//' || true
+# Backticked paths outside fences, Markdown links and link targets.
+extract_prose_paths() {
+    LC_ALL=C awk '
+        /^[ \t]*(```+|~~~+)/ {
+            m = $0; sub(/^[ \t]*/, "", m); match(m, /^(`+|~+)/); mk = substr(m, 1, RLENGTH)
+            if (fence == "") { fence = mk; next }
+            if (substr(mk, 1, 1) == substr(fence, 1, 1) && length(mk) >= length(fence)) { fence = ""; next }
+        }
+        fence != "" { next }
+        {
+            l = $0
+            gsub(/\[[^]]*\]\([^)]*\)/, "", l)
+            while (match(l, /`[^`]+`/)) {
+                print NR "\t" substr(l, RSTART + 1, RLENGTH - 2)
+                l = substr(l, RSTART + RLENGTH)
+            }
+        }' "$1"
+}
+
+# "<line>\t<label>" for every reference-style link definition ([label]: target)
+# outside fences. The check rejects these: inline links are the one form the
+# link check, the mirror build and GitHub all resolve the same way.
+extract_reference_definitions() {
+    LC_ALL=C awk '
+        /^[ \t]*(```+|~~~+)/ {
+            m = $0; sub(/^[ \t]*/, "", m); match(m, /^(`+|~+)/); mk = substr(m, 1, RLENGTH)
+            if (fence == "") { fence = mk; next }
+            if (substr(mk, 1, 1) == substr(fence, 1, 1) && length(mk) >= length(fence)) { fence = ""; next }
+        }
+        fence != "" { next }
+        /^[ \t]{0,3}\[[^]]+\]:[ \t]+[^ \t]/ {
+            l = $0; sub(/^[ \t]*\[/, "", l); sub(/\]:.*$/, "", l)
+            print NR "\t" l
+        }' "$1"
+}
+
+# Read keys immediately inside the lock's skills object, without Node or jq.
+vendored_skills=""
+if [[ -f "${ROOT}/skills-lock.json" ]]; then
+    vendored_skills="$(LC_ALL=C awk '
+        { text = text $0 }
+        END {
+            sub(/^.*"skills"[ \t]*:[ \t]*\{/, "", text)
+            depth = 1
+            while (match(text, /"[^"\\]*(\\.[^"\\]*)*"|[{}]/)) {
+                token = substr(text, RSTART, RLENGTH)
+                text = substr(text, RSTART + RLENGTH)
+                if (token == "{") depth++
+                else if (token == "}") { depth--; if (!depth) break }
+                else if (depth == 1 && text ~ /^[ \t]*:/) {
+                    print substr(token, 2, length(token) - 2)
+                }
+            }
+        }' "${ROOT}/skills-lock.json")"
+fi
+
+is_vendored() {
+    local skill
+    case "$1" in
+        .claude/skills/* | .cursor/skills/* | .github/skills/* | .github/instructions/*)
+            skill="${1#*/*/}"
+            skill="${skill%%/*}"
+            skill="${skill%.instructions.md}"
+            printf '%s\n' "${vendored_skills}" | grep -F -x -q -- "${skill}" ;;
+        *) return 1 ;;
+    esac
+}
+
+# Resolve prose only to existing Markdown files in the scanned rule trees.
+check_prose_path() {
+    local src="$1" line="$2" raw="$3" candidate target rel skill_dir
+    skill_dir="$(dirname "${src}")"
+    [[ "${skill_dir}" == */references* ]] && skill_dir="${skill_dir%%/references*}"
+    raw="${raw%%#*}"
+    case "${raw}" in *.md | *.mdc) ;; *) return 0 ;; esac
+    [[ "${raw}" == *'{'* || "${raw}" == *'<'* || "${raw}" == /* ]] && return 0
+    for candidate in "${ROOT}/$(dirname "${src}")/${raw}" "${ROOT}/${raw}" "${ROOT}/.claude/skills/${raw}" "${ROOT}/${skill_dir}/${raw}"; do
+        [[ -f "${candidate}" ]] || continue
+        target="$(cd "$(dirname "${candidate}")" && pwd -P)/$(basename "${candidate}")"
+        rel="${target#"${ROOT}/"}"
+        case "${rel}" in
+            CLAUDE.md | .claude/* | .cursor/* | .github/*)
+                echo "DRIFT ${src}:${line} :: path named in prose, make it a link -- ${raw}"
+                errors=$((errors + 1))
+                return 0 ;;
+        esac
+    done
 }
 
 # Every anchor a Markdown file defines: GitHub heading slugs (duplicates get
@@ -100,8 +185,12 @@ extract_reference_tokens() {
 # characters are dropped from slugs; setext headings are not recognised.
 collect_anchors() {
     LC_ALL=C awk '
-        /^[ \t]*(```|~~~)/ { fence = !fence; next }
-        fence { next }
+        /^[ \t]*(```+|~~~+)/ {
+            m = $0; sub(/^[ \t]*/, "", m); match(m, /^(`+|~+)/); mk = substr(m, 1, RLENGTH)
+            if (fence == "") { fence = mk; next }
+            if (substr(mk, 1, 1) == substr(fence, 1, 1) && length(mk) >= length(fence)) { fence = ""; next }
+        }
+        fence != "" { next }
         {
             l = $0
             while (match(l, /<a[ \t][^>]*(id|name)="[^"]*"/)) {
@@ -192,18 +281,20 @@ while IFS= read -r rel; do
                 raw="${raw#<}"
                 raw="${raw%>}"
                 [[ "${raw}" =~ ^[A-Za-z][A-Za-z0-9+.-]*: || "${raw}" == //* ]] && continue
-                base="${dir}"
-                if [[ -n "${skill_dir}" && "${rel}" == *.instructions.md && "${raw}" == references/* ]]; then
-                    base="${ROOT}/${skill_dir}"
-                fi
-                check_link "${rel}" "${line}" "${raw}" "${base}"
+                check_link "${rel}" "${line}" "${raw}" "${dir}"
             done < <(extract_md_links "${file}")
 
-            if [[ -n "${skill_dir}" ]]; then
+            while IFS=$'\t' read -r line label; do
+                [[ -z "${label}" ]] && continue
+                errors=$((errors + 1))
+                echo "DRIFT ${rel}:${line} :: reference-style link definition, use an inline link -- [${label}]: ..."
+            done < <(extract_reference_definitions "${file}")
+
+            if ! is_vendored "${rel}"; then
                 while IFS=$'\t' read -r line raw; do
                     [[ -z "${raw}" ]] && continue
-                    check_link "${rel}" "${line}" "${raw}" "${ROOT}/${skill_dir}"
-                done < <(extract_reference_tokens "${file}")
+                    check_prose_path "${rel}" "${line}" "${raw}"
+                done < <(extract_prose_paths "${file}")
             fi
             ;;
         *)
@@ -216,18 +307,20 @@ while IFS= read -r rel; do
 done < <(list_files)
 
 # Orphan check: every references/**/*.md in a skill directory must be
-# mentioned (Markdown link or bare token) by the skill's entry file.
+# linked by the skill's entry file. Vendored skills are exempt.
 while IFS= read -r rel; do
     [[ -z "${rel}" ]] && continue
     skill_dir="$(skill_dir_of "${rel}")"
+    is_vendored "${rel}" && continue
     refs_dir="${ROOT}/${skill_dir}/references"
     [[ -d "${refs_dir}" ]] || continue
-    mentioned="$( { extract_md_links "${ROOT}/${rel}"; extract_reference_tokens "${ROOT}/${rel}"; } \
-        | cut -f2 | sed -E 's/#.*//; s|^\./||')"
+    mentioned="$(extract_md_links "${ROOT}/${rel}" | cut -f2 | sed -E 's/^<//; s/>$//; s/#.*//; s|^\./||')"
     while IFS= read -r ref_file; do
         nested="${ref_file#"${ROOT}/${skill_dir}/"}"
         [[ "$(basename "${ref_file}")" == "README.md" ]] && continue
-        if ! printf '%s\n' "${mentioned}" | grep -F -x -q -- "${nested}"; then
+        entry_ref="${nested}"
+        [[ "${rel}" == *.instructions.md ]] && entry_ref="$(basename "${skill_dir}")/${nested}"
+        if ! printf '%s\n' "${mentioned}" | grep -F -x -q -- "${entry_ref}"; then
             echo "DRIFT ${rel} :: orphan reference -- ${skill_dir}/${nested} exists but ${rel} does not link to it"
             errors=$((errors + 1))
         fi

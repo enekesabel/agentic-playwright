@@ -14,17 +14,11 @@
 // Not generated: `.github/skills/skill-creator/` (hand-kept folder-form copy)
 // and `.github/prompts/` (hand-written Copilot prompt for pr-reviewer).
 //
-// Rewriting, applied to every non-vendored file:
-//   - Markdown link targets are resolved against the canonical file, mapped to
-//     their mirror path, and made relative to the mirror file again, so links
-//     stay inside the tree that contains them. A link to a canonical rule-tree
-//     file that has no counterpart in a mirror fails the build. Exception: in a
-//     flat Copilot instructions file, `references/...` targets stay verbatim;
-//     the references check resolves them against `.github/instructions/<x>/`.
-//   - Path mentions in prose (`.claude/...`, `CLAUDE.md`) are substituted with
-//     the mirror's paths.
-// Vendored skills (listed in skills-lock.json) are copied verbatim so their
-// upstream content and code stay intact.
+// Markdown link targets in every Markdown copy, including vendored skills,
+// resolve against the canonical file and are rewritten relative to the mirror.
+// A canonical rule-tree link without a mirror counterpart fails the build.
+// Prose path substitutions apply only to non-vendored files; canonical vendored
+// files remain untouched so their lock hashes hold.
 //
 // Node built-ins only (no npm install needed). Path arithmetic for relative
 // links is why this is not bash.
@@ -169,42 +163,67 @@ function mapPath(mirror, rel) {
 const LINK = /\]\(([^)\s]+)((?:\s+"[^"]*")?)\)/g;
 
 function isExternal(target) {
-    return /^(?:[a-z][a-z0-9+.-]*:|#|\/|<)/i.test(target);
+    return /^(?:[a-z][a-z0-9+.-]*:|#|\/)/i.test(target);
 }
 
 // Rewrite one file's text for a mirror. `src` and `dest` are repo-relative.
-function rewrite(text, src, dest, mirror, errors) {
+function rewrite(text, src, dest, mirror, errors, prose = true) {
     const links = [];
-    const flatCopilotFile = dest.endsWith('.instructions.md');
-    let out = text.replace(LINK, (match, target, title) => {
-        let next = target;
-        if (
-            !isExternal(target) &&
-            !(flatCopilotFile && target.startsWith('references/'))
-        ) {
-            const hash = target.indexOf('#');
-            const file = hash === -1 ? target : target.slice(0, hash);
-            const anchor = hash === -1 ? '' : target.slice(hash);
-            const resolved = path.posix.normalize(
-                path.posix.join(path.posix.dirname(src), file)
-            );
-            if (!resolved.startsWith('../')) {
-                const mapped = mapPath(mirror, resolved);
-                if (mapped === null) {
-                    errors.push(
-                        `${src}: link '${target}' points to ${resolved}, which has no counterpart in ${dest.split('/')[0]}/`
-                    );
-                } else {
-                    next =
-                        path.posix.relative(path.posix.dirname(dest), mapped) +
-                        anchor;
+    let fence = '';
+    let out = text
+        .split('\n')
+        .map((line) => {
+            const marker = /^\s*(`{3,}|~{3,})/.exec(line);
+            if (marker) {
+                const mk = marker[1];
+                if (!fence) {
+                    fence = mk;
+                    return line;
+                }
+                if (mk[0] === fence[0] && mk.length >= fence.length) {
+                    fence = '';
+                    return line;
                 }
             }
-        }
-        links.push(`](${next}${title})`);
-        return `\u0000${links.length - 1}\u0000`;
-    });
-    for (const [pattern, replacement] of mirror.prose) {
+            if (fence) return line;
+            // Inline code is quoted text, not a link: leave spans untouched.
+            return line
+                .split(/(`[^`]*`)/)
+                .map((part, i) => (i % 2 ? part : rewriteLinks(part)))
+                .join('');
+        })
+        .join('\n');
+    function rewriteLinks(segment) {
+        return segment.replace(LINK, (match, rawTarget, title) => {
+            const target = rawTarget.replace(/^<(.*)>$/, '$1');
+            let next = target;
+            if (!isExternal(target)) {
+                const hash = target.indexOf('#');
+                const file = hash === -1 ? target : target.slice(0, hash);
+                const anchor = hash === -1 ? '' : target.slice(hash);
+                const resolved = path.posix.normalize(
+                    path.posix.join(path.posix.dirname(src), file)
+                );
+                if (!resolved.startsWith('../')) {
+                    const mapped = mapPath(mirror, resolved);
+                    if (mapped === null) {
+                        errors.push(
+                            `${src}: link '${target}' points to ${resolved}, which has no counterpart in ${dest.split('/')[0]}/`
+                        );
+                    } else {
+                        next =
+                            path.posix.relative(
+                                path.posix.dirname(dest),
+                                mapped
+                            ) + anchor;
+                    }
+                }
+            }
+            links.push(`](${next}${title})`);
+            return `\u0000${links.length - 1}\u0000`;
+        });
+    }
+    for (const [pattern, replacement] of prose ? mirror.prose : []) {
         out = out.replace(pattern, replacement);
     }
     return out.replace(/\u0000(\d+)\u0000/g, (_, i) => links[Number(i)]);
@@ -246,6 +265,16 @@ function buildMirror(name, mirror, vendored, errors) {
         if (vendored.has(skill)) {
             if (name === 'copilot' && rest === 'SKILL.md') {
                 content = copilotInstructions(skill, content.toString('utf8'));
+            }
+            if (/\.(md|mdc)$/.test(src)) {
+                content = rewrite(
+                    content.toString('utf8'),
+                    src,
+                    dest,
+                    mirror,
+                    errors,
+                    false
+                );
             }
         } else {
             let text = content.toString('utf8');

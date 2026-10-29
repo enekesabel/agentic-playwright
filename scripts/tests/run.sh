@@ -21,6 +21,11 @@ missing-anchor|check-skill-references-drift.sh|nonzero|README.md:5;CONTRIBUTING.
 missing-anchor-in-comment|check-skill-references-drift.sh|nonzero|scripts/gate.sh:2;../README.md#rule-no-xpath;broken anchor
 missing-mdc-anchor-in-comment|check-skill-references-drift.sh|nonzero|scripts/gate.sh:2;rules.mdc#rule-absent;broken anchor
 orphan-reference|check-skill-references-drift.sh|nonzero|.claude/skills/demo/SKILL.md;references/unlinked.md;orphan reference
+path-in-prose|check-skill-references-drift.sh|nonzero|path named in prose, make it a link;references/notes.md;orphan reference
+vendored-orphan|check-skill-references-drift.sh|0|0 drift(s)
+reference-style-link|check-skill-references-drift.sh|nonzero|SKILL.md:5;reference-style link definition;[n]
+angle-bracket-link|check-skill-references-drift.sh|0|0 drift(s)
+tilde-inside-fence|check-skill-references-drift.sh|0|0 drift(s)
 clean|check-skill-references-drift.sh|0|0 drift(s)
 index-lists-missing-skill|check-skill-crossrefs.sh|nonzero|DRIFT index;`ghost` listed in CLAUDE.md Skills Index;.claude/skills/ghost/SKILL.md is missing
 skill-missing-from-index|check-skill-crossrefs.sh|nonzero|DRIFT index;.claude/skills/stray/ exists but is missing from the CLAUDE.md Skills Index
