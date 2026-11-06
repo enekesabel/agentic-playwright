@@ -8,48 +8,48 @@ Rules for every agent in this repository. Skills hold the detail; load the one t
 
 ### MUST
 
-- **Dependency Injection**: page objects are fixtures from `fixtures/pom/test-options.ts`.
-- **Imports**: `test` and `expect` from `fixtures/pom/test-options.ts` only, never `@playwright/test` in spec files.
-- **Selectors**: `getByRole()` > `getByLabel()` > `getByPlaceholder()` > `getByText()` > `getByTestId()`.
-- **Type Safety**: Zod schemas in `fixtures/api/schemas/`; no `any`.
-- **Strict Schemas**: API schemas use `z.strictObject()`.
-- **Response Validation**: exactly `expect(SchemaName.parse(body)).toBeTruthy();`.
-- **Sources of Truth**: URLs and credentials from `process.env.*` (`env/.env.example`); endpoint paths, routes, messages and storage-state paths from `enums/{area}/*` and `enums/util/*`.
-- **Assertions**: web-first, `expect(locator).toBeVisible()`; never `waitForTimeout()`.
-- **Linting**: ESLint and Prettier clean, zero warnings.
-- **Data Strategy**: invalid arrays in `test-data/static/util/invalid-values.ts`; curated sets in `test-data/static/{area}/`; happy-path data from `test-data/factories/{area}/`.
-- **State Cleanup**: a test that mutates persistent state reverts it in `afterEach` or `afterAll`.
-- **API Test Steps**: two or more API calls means one `test.step()` per call.
-- **Test Verification**: run `npx playwright test <file>` after editing a spec; red is never done.
-- **Explore Before Generate**: API: build from the OpenAPI document; live capture only when none exists, flagged; a runtime mismatch is `test.skip` plus `// FIXME:`, never a loosened schema. UI: you explore with `playwright-cli` (read that skill first) before you write any `pages/**` file, UI spec or selector; cannot run means stop and tell the human.
+- **Dependency Injection**<a id="rule-dependency-injection"></a>: page objects are fixtures from `fixtures/pom/test-options.ts`.
+- **Imports**<a id="rule-imports"></a>: `test` and `expect` from `fixtures/pom/test-options.ts` only, never `@playwright/test` in spec files.
+- **Selectors**<a id="rule-selectors"></a>: `getByRole()` > `getByLabel()` > `getByPlaceholder()` > `getByText()` > `getByTestId()`.
+- **Type Safety**<a id="rule-type-safety"></a>: Zod schemas in `fixtures/api/schemas/`; no `any`.
+- **Strict Schemas**<a id="rule-strict-schemas"></a>: API schemas use `z.strictObject()`.
+- **Response Validation**<a id="rule-response-validation"></a>: exactly `expect(SchemaName.parse(body)).toBeTruthy();`.
+- **Sources of Truth**<a id="rule-sources-of-truth"></a>: URLs and credentials from `process.env.*` (`env/.env.example`); endpoint paths, routes, messages and storage-state paths from `enums/{area}/*` and `enums/util/*`.
+- **Assertions**<a id="rule-assertions"></a>: web-first, `expect(locator).toBeVisible()`; never `waitForTimeout()`.
+- **Linting**<a id="rule-linting"></a>: ESLint and Prettier clean, zero warnings.
+- **Data Strategy**<a id="rule-data-strategy"></a>: invalid arrays in `test-data/static/util/invalid-values.ts`; curated sets in `test-data/static/{area}/`; happy-path data from `test-data/factories/{area}/`.
+- **State Cleanup**<a id="rule-state-cleanup"></a>: a test that mutates persistent state reverts it in `afterEach` or `afterAll`.
+- **API Test Steps**<a id="rule-api-test-steps"></a>: two or more API calls means one `test.step()` per call.
+- **Test Verification**<a id="rule-test-verification"></a>: run `npx playwright test <file>` after editing a spec; red is never done.
+- **Explore Before Generate**<a id="rule-explore-before-generate"></a>: API: build from the OpenAPI document; live capture only when none exists, flagged; a runtime mismatch is `test.skip` plus `// FIXME:`, never a loosened schema. UI: you explore with `playwright-cli` (read that skill first) before you write any `pages/**` file, UI spec or selector; cannot run means stop and tell the human.
 
 ### SHOULD
 
-- **Data Generation**: Faker factories in `test-data/factories/` for happy-path values, UI content too.
-- **Test Isolation**: independent tests; `test.beforeEach` for setup.
-- **Test Steps**: `test.step()` with Given/When/Then.
-- **JSDoc on Actions**: JSDoc (`@param`, `@returns`) on action methods only.
-- **Enums for Strings**: repeated strings come from `enums/`.
+- **Data Generation**<a id="rule-data-generation"></a>: Faker factories in `test-data/factories/` for happy-path values, UI content too.
+- **Test Isolation**<a id="rule-test-isolation"></a>: independent tests; `test.beforeEach` for setup.
+- **Test Steps**<a id="rule-test-steps"></a>: `test.step()` with Given/When/Then.
+- **JSDoc on Actions**<a id="rule-jsdoc-on-actions"></a>: JSDoc (`@param`, `@returns`) on action methods only.
+- **Enums for Strings**<a id="rule-enums-for-strings"></a>: repeated strings come from `enums/`.
 
 ### WON'T
 
-- **No XPath**.
-- **No Hard Waits**: never `page.waitForTimeout()`.
-- **No Secrets**: never a hardcoded credential.
-- **No `any`**.
-- **No Tags on Describe**: never on `test.describe()`.
-- **No Multiple Tags**: exactly one of `@smoke`, `@sanity`, `@regression`, `@e2e`, `@api`, `@destructive`; never `@functional`. `@destructive` alone when shared state (locale, roles, settings) is mutated, not for own-data cleanup.
-- **No Magic Numbers**: constants in `config/` or `enums/`.
-- **No Manual Instantiation**: never `new PageObject(page)` inside test files.
-- **No Loose Schemas**: never `z.object()`.
-- **No JSDoc on Locators**.
-- **No Hardcoded Test Content**: names, labels and text come from factories.
-- **No Explore-Only Files**: never commit a page-dump or probe spec.
-- **No Empty-Body-Only 400**: per-field omission and invalid-type `for...of` tests.
-- **No Feedback-Less POM**: form and CRUD page objects have success, error and validation selectors.
-- **No Substitute UI Exploration**: no IDE or MCP browser, no `codegen`; only `playwright-cli`.
-- **No Silent Coverage Drops**: every documented status code has a test or a `test.skip` with `// FIXME`.
-- **No JSON Static Data**: `test-data/static/**` is `.ts` with `as const`.
+- **No XPath**<a id="rule-no-xpath"></a>.
+- **No Hard Waits**<a id="rule-no-hard-waits"></a>: never `page.waitForTimeout()`.
+- **No Secrets**<a id="rule-no-secrets"></a>: never a hardcoded credential.
+- **No `any`**<a id="rule-no-any"></a>.
+- **No Tags on Describe**<a id="rule-no-tags-on-describe"></a>: never on `test.describe()`.
+- **No Multiple Tags**<a id="rule-no-multiple-tags"></a>: exactly one of `@smoke`, `@sanity`, `@regression`, `@e2e`, `@api`, `@destructive`; never `@functional`. `@destructive` alone when shared state (locale, roles, settings) is mutated, not for own-data cleanup.
+- **No Magic Numbers**<a id="rule-no-magic-numbers"></a>: constants in `config/` or `enums/`.
+- **No Manual Instantiation**<a id="rule-no-manual-instantiation"></a>: never `new PageObject(page)` inside test files.
+- **No Loose Schemas**<a id="rule-no-loose-schemas"></a>: never `z.object()`.
+- **No JSDoc on Locators**<a id="rule-no-jsdoc-on-locators"></a>.
+- **No Hardcoded Test Content**<a id="rule-no-hardcoded-test-content"></a>: names, labels and text come from factories.
+- **No Explore-Only Files**<a id="rule-no-explore-only-files"></a>: never commit a page-dump or probe spec.
+- **No Empty-Body-Only 400**<a id="rule-no-empty-body-only-400"></a>: per-field omission and invalid-type `for...of` tests.
+- **No Feedback-Less POM**<a id="rule-no-feedback-less-pom"></a>: form and CRUD page objects have success, error and validation selectors.
+- **No Substitute UI Exploration**<a id="rule-no-substitute-ui-exploration"></a>: no IDE or MCP browser, no `codegen`; only `playwright-cli`.
+- **No Silent Coverage Drops**<a id="rule-no-silent-coverage-drops"></a>: every documented status code has a test or a `test.skip` with `// FIXME`.
+- **No JSON Static Data**<a id="rule-no-json-static-data"></a>: `test-data/static/**` is `.ts` with `as const`.
 
 ## Workflow
 

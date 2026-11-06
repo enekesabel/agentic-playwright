@@ -122,7 +122,7 @@ EOF
 ACTUAL_ROWS="$(awk '/^## Constitution/ { in_sec = 1; next }
                    in_sec && /^## /    { in_sec = 0 }
                    in_sec              { print }' "${CONSTITUTION}" \
-    | grep -oE '^- \*\*[^*]+\*\*' | sed 's/^- \*\*//; s/\*\*$//')"
+    | grep -oE '^- \*\*[^*]+\*\*(<a id="rule-[a-z0-9-]+"></a>)?' | sed 's/^- \*\*//; s/\*\*.*$//')"
 
 while IFS= read -r row; do
     [[ -z "${row}" ]] && continue

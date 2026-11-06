@@ -25,6 +25,7 @@ npx playwright test        # requires env/.env.dev — see README "Environment V
 ## Ground rules for changes
 
 - **Follow the Constitution.** The rules in `AGENTS.md` apply to contributed test code too: fixtures over manual instantiation, web-first assertions, no hard waits, no `any`, `z.strictObject()` for API schemas, one tag per test.
+- Every Constitution row carries a `rule-<slug>` anchor (lowercase kebab-case, punctuation dropped). Link to its [Constitution](AGENTS.md#constitution) row instead of restating it.
 - **Edit the canonical tree only.** Change a skill under `.claude/skills/`, run `npm run skills:sync`, and commit both trees; `npm run check:skills` fails otherwise.
 - **Vendored skills are off-limits for direct edits.** `skill-creator` and `playwright-cli` are tracked in `skills-lock.json` and synced from upstream; local edits get overwritten. Open an issue instead.
 - **New behavior needs an example.** A new pattern (fixture type, data tier, selector rule) should come with a small example file demonstrating it.
