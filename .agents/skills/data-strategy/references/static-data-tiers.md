@@ -1,6 +1,6 @@
 # Static data tiers
 
-Static files hold curated sets that a `for...of` loop iterates (`test-standards` has the loop skeleton). Every file is `.ts` with `as const` exports of literal values; the Constitution checks reject anything else.
+Static files hold the curated sets of [Data Strategy](../../../../AGENTS.md#rule-data-strategy) that a `for...of` loop iterates (`test-standards` has the loop skeleton). [No JSON Static Data](../../../../AGENTS.md#rule-no-json-static-data): literal values only.
 
 ## Tier 1: universal type-mismatch arrays
 

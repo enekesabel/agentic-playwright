@@ -1,6 +1,6 @@
 # Contract sourcing
 
-The documented contract (OpenAPI / Swagger or an equivalent document) is the source of truth for schemas and tests. Observed behaviour is evidence about the implementation, not about the contract.
+[Explore Before Generate](../../../../AGENTS.md#rule-explore-before-generate): the contract is the OpenAPI / Swagger document or an equivalent one. Observed behaviour is evidence about the implementation, not about the contract.
 
 ## Where to look
 
@@ -8,7 +8,7 @@ The documented contract (OpenAPI / Swagger or an equivalent document) is the sou
 2. The API host. The demo API serves its OpenAPI JSON at `${API_URL}/docs` and a Swagger UI at `${API_URL}/api/documentation`; another API will use its own route, so check `/docs`, `/openapi.json`, `/swagger.json` and `/api/documentation`.
 3. A document the human provides.
 
-No documentation exists: use flagged live capture. A short search that finds nothing is not "no documentation exists".
+No documentation exists: flagged live capture per [Explore Before Generate](../../../../AGENTS.md#rule-explore-before-generate). A short search that finds nothing is not "no documentation exists".
 
 ## Recording the source
 

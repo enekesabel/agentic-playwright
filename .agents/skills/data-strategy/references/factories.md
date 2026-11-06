@@ -1,6 +1,6 @@
 # Factories
 
-Faker + Zod: unique, valid data per test run, so parallel workers never collide on a name, email or id. The live instance is `test-data/factories/app/user.factory.ts` (`generateUser`, `generateLoginCredentials`); `ProductSchema` and `generateProduct` below are illustrative.
+[Data Generation](../../../../AGENTS.md#rule-data-generation) with Faker + Zod: unique, valid data per test run, so parallel workers never collide on a name, email or id. The live instance is `test-data/factories/app/user.factory.ts` (`generateUser`, `generateLoginCredentials`); `ProductSchema` and `generateProduct` below are illustrative.
 
 ## Pattern
 
@@ -42,4 +42,4 @@ Pin only the fields the test asserts on; everything else stays random.
 
 ## When `Schema.parse` throws inside the factory
 
-The Faker defaults no longer satisfy the schema: a new required field, a changed format, a range. Fix the defaults. Never loosen the schema; it is the contract (`type-safety`).
+The Faker defaults no longer satisfy the schema: a new required field, a changed format, a range. Fix the defaults. Never loosen the schema; it is the contract ([Explore Before Generate](../../../../AGENTS.md#rule-explore-before-generate), `type-safety`).

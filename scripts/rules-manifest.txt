@@ -6,14 +6,7 @@
 # (e.g. a bare `.ts`) is a no-op check: the rule could be deleted from the
 # Critical block and the grep would still hit something else. A stylistic
 # rewrite of a Critical block should force a deliberate manifest update.
-z.strictObject|type-safety|Strict Zod schemas
-NEVER** use `any`|type-safety|No any
-SchemaName.parse(body)).toBeTruthy|api-testing|Response validation pattern
-test.skip|api-testing|Behaviour-mismatch protocol
 fuzz path parameters|api-testing|Path-parameter fuzzing
-per-field omission|api-testing|No empty-body-only 400
-more than one API call|api-testing|API calls wrapped in test.step
-access tokens, emails, passwords|api-testing|No secrets
 waitForTimeout|test-standards|No hard waits
 exactly one** tag|test-standards|Single-tag rule
 @destructive|test-standards|@destructive heaviest
@@ -21,11 +14,5 @@ Every state-mutating test|test-standards|State cleanup hooks
 confirm zero failures|test-standards|Test verification after edits
 must be independent|test-standards|Test isolation
 explore-only|test-standards|No explore-only files
-as const` literal values|data-strategy|Static data is TS literals
-Faker factory|data-strategy|Happy-path data via Faker
-hardcode test content strings|data-strategy|No hardcoded test content
-magic numbers|data-strategy|No magic numbers
-process.env|config|Env-driven URLs/credentials
-ApiEndpoints|enums|Endpoint paths in enums
 expect(locator)|test-standards|Web-first assertions
 find all consumers|refactor-values|Impact-analysis first

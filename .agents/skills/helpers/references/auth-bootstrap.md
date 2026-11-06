@@ -12,7 +12,7 @@ A `process.env` write is visible only inside the process that made it, which is 
 
 ## Adapting it to another app
 
-Replace the sign-in steps inside the two mint functions; keep the file paths in `StorageStatePaths`, the credentials in `process.env.*` and the schema assertion. A second role (the 403 row of the API coverage matrix) is a second credential pair declared in `env/.env.example` and a second token file, minted the same way; never read an env var no helper populates.
+Replace the sign-in steps inside the two mint functions; keep the file paths in `StorageStatePaths` and the credentials in `process.env.*` ([Sources of Truth](../../../../AGENTS.md#rule-sources-of-truth)), and the schema assertion. A second role (the 403 row of the API coverage matrix) is a second credential pair declared in `env/.env.example` and a second token file, minted the same way; never read an env var no helper populates.
 
 ## `process.env.ACCESS_TOKEN` is `undefined` in a test
 

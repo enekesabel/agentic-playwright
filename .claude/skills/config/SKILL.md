@@ -7,7 +7,7 @@ description: Use when adding an environment variable, a config property, an envi
 
 ## Critical
 
-- URLs, credentials and other environment-driven values come from `process.env.*`, backed by `env/.env.${ENVIRONMENT}` (default `env/.env.dev`), never from a literal in code.
+- [Sources of Truth](../../../AGENTS.md#rule-sources-of-truth), [No Secrets](../../../AGENTS.md#rule-no-secrets): other environment-driven values too; `process.env.*` is backed by `env/.env.${ENVIRONMENT}` (default `env/.env.dev`).
 
     ```typescript
     // CORRECT
@@ -16,7 +16,7 @@ description: Use when adding an environment variable, a config property, an envi
     baseUrl: 'https://api.example.com',
     ```
 
-- Endpoint paths, routes and storage-state paths are enums (`enums`), never config properties or env vars.
+- [Sources of Truth](../../../AGENTS.md#rule-sources-of-truth): endpoint paths, routes and storage-state paths (`enums`) are never config properties or env vars.
 - Every env var the scaffold reads is declared in `env/.env.example` with a safe placeholder (no real domain, token or password); the one exception is `ACCESS_TOKEN`, minted at runtime by the auth setup (`helpers`).
 - A config property exists only for a URL or infrastructure setting worth a documented surface: app values in `config/app.ts`, utility services in `config/util/util.ts`, each with a JSDoc line naming its env var; credentials stay env-only.
 - Only `env/.env.example` is tracked; a real env file is never committed.
@@ -28,7 +28,7 @@ description: Use when adding an environment variable, a config property, an envi
 2. Add the key to `env/.env.example` under its comment group, then to the local `env/.env.<name>` file.
 3. For a URL or infrastructure setting, add the property to `config/app.ts` or `config/util/util.ts` with its JSDoc line.
 4. Read it where it is used, `!` or `?? fallback` per `type-safety`.
-5. Run with `ENVIRONMENT=<name> npx playwright test <file>`; a missing env file loads nothing and leaves every value `undefined`, so confirm the value before blaming the test.
+5. [Test Verification](../../../AGENTS.md#rule-test-verification) with `ENVIRONMENT=<name>` set; a missing env file loads nothing and leaves every value `undefined`, so confirm the value before blaming the test.
 
 ## References
 

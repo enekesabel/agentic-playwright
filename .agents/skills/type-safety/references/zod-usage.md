@@ -33,7 +33,7 @@ Zod 4 idioms (the old forms still work but are deprecated; prefer the new ones):
 
 Project conventions (this scaffold's rules, not Zod deprecations; do not "fix" external code for them):
 
-- `z.object()` → `z.strictObject()` for every API schema (the Constitution checks reject `z.object()` under `fixtures/api/schemas/`)
+- `z.object()` → `z.strictObject()` for every API schema ([Strict Schemas](../../../../AGENTS.md#rule-strict-schemas), [No Loose Schemas](../../../../AGENTS.md#rule-no-loose-schemas))
 - `z.infer<typeof S>` → `zOutput<typeof S>`, with `zInput<typeof S>` for the pre-parse shape
 
 ## `zInput` versus `zOutput`

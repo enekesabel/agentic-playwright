@@ -1,6 +1,6 @@
 # Coverage matrix
 
-Every endpoint × method gets a test for every status code the contract documents, plus the baseline rows below. A documented code missing from this table still needs a test.
+[No Silent Coverage Drops](../../../../AGENTS.md#rule-no-silent-coverage-drops) for every endpoint × method, plus the baseline rows below. A documented code missing from this table still needs a test.
 
 | Scenario                             | Status         | Assert                                                                            |
 | ------------------------------------ | -------------- | --------------------------------------------------------------------------------- |
@@ -8,10 +8,10 @@ Every endpoint × method gets a test for every status code the contract document
 | No `headers` (missing Authorization) | 401            | `status`; `UnauthorizedResponseSchema.parse(body)`                                |
 | Wrong-role token                     | 403            | `status`; `ForbiddenResponseSchema.parse(body)`                                   |
 | Empty body `{}` (POST/PUT/PATCH)     | 400/422        | `status`; error schema parse                                                      |
-| Each required field omitted          | 400/422        | one test per field (`references/negative-testing.md`)                             |
-| Each field with wrong types          | 400/422        | `for...of` per field (`references/negative-testing.md`)                           |
+| Each required field omitted          | 400/422        | one test per field ([negative-testing.md](negative-testing.md))                   |
+| Each field with wrong types          | 400/422        | `for...of` per field ([negative-testing.md](negative-testing.md))                 |
 | Unknown resource id                  | 404            | `status`; `NotFoundResponseSchema.parse(body)`                                    |
-| Invalid path-parameter formats       | 404            | data-driven loop (`references/negative-testing.md`)                               |
+| Invalid path-parameter formats       | 404            | data-driven loop ([negative-testing.md](negative-testing.md))                     |
 | Unsupported method                   | 405            | `status`                                                                          |
 | Conflict, when documented            | 409            | the conflicting condition, or `test.skip` + `// FIXME` when it cannot be produced |
 | Query parameters, when documented    | 400/422 or 200 | invalid type and out-of-range value per parameter                                 |
@@ -22,7 +22,7 @@ Error schemas live in `fixtures/api/schemas/util/errorResponseSchema.ts`: `Unaut
 ## Structure
 
 - One `test.describe` per method + path; one spec file per resource under `tests/{area}/api/`.
-- A resource several tests in the block share is created in `beforeAll` and deleted in `afterAll`; a POST block deletes what its happy-path test created in `afterAll`. Both hooks take the `apiRequest` fixture.
+- [State Cleanup](../../../../AGENTS.md#rule-state-cleanup): a resource several tests in the block share is created in `beforeAll` and deleted in `afterAll`; a POST block deletes what its happy-path test created in `afterAll`. Both hooks take the `apiRequest` fixture.
 - Every test carries the `@api` tag (`test-standards`).
 
 ## Tokens

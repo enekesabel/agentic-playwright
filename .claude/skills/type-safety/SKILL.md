@@ -7,7 +7,7 @@ description: Use when creating or extending a Zod schema under fixtures/api/sche
 
 ## Critical
 
-- **NEVER** use `any`, `@ts-ignore` or `@ts-expect-error`: `unknown` at a boundary (network, file, user input), then `Schema.parse(...)`; a Zod-inferred type everywhere else.
+- [No `any`](../../../AGENTS.md#rule-no-any); never `@ts-ignore` or `@ts-expect-error` either: `unknown` at a boundary (network, file, user input), then `Schema.parse(...)`; a Zod-inferred type everywhere else.
 - Never `as T` or `as unknown as T` to cross a type boundary; parse instead.
 
     ```typescript
@@ -18,7 +18,7 @@ description: Use when creating or extending a Zod schema under fixtures/api/sche
     const user = (await response.json()) as UserResponse;
     ```
 
-- Every API schema is `z.strictObject()`; `z.object()` strips unknown keys and hides contract drift.
+- [Strict Schemas](../../../AGENTS.md#rule-strict-schemas), [No Loose Schemas](../../../AGENTS.md#rule-no-loose-schemas): `z.object()` strips unknown keys and hides contract drift.
 
     ```typescript
     // CORRECT
@@ -36,11 +36,11 @@ description: Use when creating or extending a Zod schema under fixtures/api/sche
 ## Procedure
 
 1. `ls fixtures/api/schemas/` resolves `{area}`; the file is `fixtures/api/schemas/{area}/<name>Schema.ts`; shared error bodies stay in `fixtures/api/schemas/util/errorResponseSchema.ts`.
-2. Write the schema from the contract that `api-testing` step 1 sourced, one validator per field from `references/zod-usage.md`, the contract source in a comment at the top.
-3. Export the type; `references/zod-usage.md` decides `zInput` versus `zOutput` and when to extract an envelope.
-4. Hand it to the consumer: a spec asserts `expect(SchemaName.parse(body)).toBeTruthy();` (`api-testing`); a factory returns `Schema.parse(merged)` (`data-strategy`); fixture code binds `const x = Schema.parse(body);`.
-5. Run `npx tsc --noEmit` and `npm run lint`. A `ZodError` against a documented contract is a bug handled per `api-testing`, never by loosening the schema.
+2. Write the schema from the contract that `api-testing` step 1 sourced, one validator per field from [references/zod-usage.md](references/zod-usage.md), the contract source in a comment at the top.
+3. Export the type; [references/zod-usage.md](references/zod-usage.md) decides `zInput` versus `zOutput` and when to extract an envelope.
+4. Hand it to the consumer: a spec follows [Response Validation](../../../AGENTS.md#rule-response-validation) (`api-testing`); a factory returns `Schema.parse(merged)` (`data-strategy`); fixture code binds `const x = Schema.parse(body);`.
+5. Run `npx tsc --noEmit`; [Linting](../../../AGENTS.md#rule-linting). A `ZodError` against a documented contract: [Explore Before Generate](../../../AGENTS.md#rule-explore-before-generate) (`api-testing`).
 
 ## References
 
-- `references/zod-usage.md`: the validator per data type, Zod 4 idioms versus project conventions, `zInput` versus `zOutput`, envelope extraction.
+- [references/zod-usage.md](references/zod-usage.md): the validator per data type, Zod 4 idioms versus project conventions, `zInput` versus `zOutput`, envelope extraction.
