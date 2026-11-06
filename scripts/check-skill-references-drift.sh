@@ -1,131 +1,196 @@
 #!/usr/bin/env bash
-# check-skill-references-drift.sh
+# check-skill-references-drift.sh [root-dir]
 #
-# Lints structural drift between each SKILL.md and its `references/`
-# siblings. Catches three failure modes:
-#   1. Broken pointer  -- SKILL.md links to references/foo.md but the file is missing.
-#   2. Orphan reference -- references/foo.md exists but no link references it.
-#   3. Broken anchor   -- "references/foo.md#bar" with no matching "## bar" heading.
-#
-# Walks the canonical tree only: .claude/skills/<name>/SKILL.md. The generated
-# .agents/skills tree is a byte-for-byte copy gated by check-skills-sync.sh, so
-# checking it again would only repeat every finding.
-#
-# Semantic drift (a rule contradicted by an example) needs an LLM and is out
-# of scope for this lint -- run periodically via the skill-creator agent.
-#
-# Exits non-zero on any drift so CI can gate.
-
+# Checks root rule/docs files, .github/prompts/*.md, canonical skill Markdown,
+# and comment tokens in scripts/, .claude/scripts/, .husky/, eslint.config.mts
+# (also skill-local scripts). The generated .agents/ tree is checked by sync.
+# Failure modes: missing relative-link file; missing heading/HTML anchor;
+# reference-style definition; backticked rule-file path named in prose;
+# missing references/ pointer; orphan references/**/*.md (README.md exempt).
+# Vendored skills from skills-lock.json skip prose/orphan checks only.
+# STRICT_PROSE_PATHS defaults to 0; set 1 to enforce prose paths (the gate
+# swap commit flips the default).
+# Strict prose checks cover AGENTS.md, CLAUDE.md, qualified skill SKILL.md
+# paths and references/*.md, including missing targets and mixed code spans.
+# Generic SKILL.md names, skill names, code paths, YAML frontmatter,
+# the standalone Claude @AGENTS.md import, a pruned file marked
+# "<path> (omitted)" by the initializer, and vendored prose are exempt.
+# Fences and inline code hide links; angle targets and GFM headings work.
+# Bare comment tokens resolve relative to the source, with AGENTS.md rooted.
+# Exits nonzero with source, line and reason. Python standard library only.
 set -euo pipefail
+export STRICT_PROSE_PATHS="${STRICT_PROSE_PATHS:-0}"
+ROOT="$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd -P)"
+python3 - "${ROOT}" <<'PY'
+import json
+import os
+import re
+import sys
+import unicodedata
+from pathlib import Path
+from urllib.parse import unquote
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SKILLS_DIR="${REPO_ROOT}/.claude/skills"
+root = Path(sys.argv[1])
+skills = root / '.claude/skills'
+if not skills.is_dir():
+    skills = root / '.agents/skills'
+lock = root / 'skills-lock.json'
+vendored = set(json.loads(lock.read_text()).get('skills', {})) if lock.exists() else set()
+errors = []
+checked = 0
 
-if [[ ! -d "${SKILLS_DIR}" ]]; then
-    echo "SKIP: ${SKILLS_DIR#"${REPO_ROOT}"/} not present (pruned at init) — nothing to check."
-    exit 0
-fi
 
-# Slugify a heading for GFM anchor matching: lowercase, drop most punctuation,
-# keep alphanumeric + hyphens, collapse spaces to hyphens.
-slugify() {
-    printf '%s' "$1" \
-        | tr '[:upper:]' '[:lower:]' \
-        | sed -E 's/[^a-z0-9 _-]//g; s/[ _]+/-/g; s/^-+//; s/-+$//'
-}
+def fail(src, line, reason, raw):
+    errors.append(f'DRIFT {src.relative_to(root)}:{line} :: {reason} -- {raw}')
 
-# Collect every "## heading" in a markdown file as slugs (one per line).
-collect_anchors() {
-    local file="$1"
-    awk '/^## +/ { sub(/^## +/, ""); print }' "${file}" | while IFS= read -r heading; do
-        slugify "${heading}"
-    done
-}
 
-# Extract every references/<path>(#anchor)? token from a file. We deliberately
-# look only for the bare `references/...md` shape -- a pointer into another
-# skill's references/ (`../other/references/foo.md`) is not a sibling link and
-# is left to check-heading-pointers.sh and check-skill-crossrefs.sh.
-extract_reference_links() {
-    local file="$1"
-    # The last sed drops sentence punctuation the character class swallows:
-    # "see references/foo.md." is a link to foo.md, not to "foo.md.".
-    grep -oE '(^|[^/])references/[A-Za-z0-9._/-]+(#[A-Za-z0-9._-]+)?' "${file}" \
-        | sed -E -e 's/^[^r]//' -e 's/\.+$//' || true
-}
+def lines_outside_fences(text):
+    fence = None
+    for num, line in enumerate(text.splitlines(), 1):
+        match = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', line)
+        if match:
+            marker, tail = match.groups()
+            if fence is None and not (marker[0] == '`' and '`' in tail):
+                fence = marker
+                continue
+            if fence and marker[0] == fence[0] and len(marker) >= len(fence) and not tail.strip():
+                fence = None
+                continue
+        if fence is None:
+            yield num, line
 
-errors=0
-checked_skills=0
-checked_links=0
 
-# Run the three drift checks for one skill. Args:
-#   $1 = path to the SKILL.md file
-#   $2 = directory whose `references/` sibling holds the linked .md files
-#   $3 = display name (e.g. "api-testing")
-check_skill_file() {
-    local skill_md="$1"
-    local skill_dir="$2"
-    local display="$3"
-    local refs_dir="${skill_dir}/references"
+CODE = re.compile(r'(`+)(?!`)(.+?)(?<!`)\1(?!`)', re.S)
+LINK = re.compile(r'!?\[(?:\\.|[^\]\\])*\]\(\s*(<[^>\n]*>|(?:\\.|[^\s()\\]|\([^()]*\))*)(?:\s+[\'\"][^\n]*?[\'\"])?\s*\)')
 
-    checked_skills=$((checked_skills + 1))
 
-    local mentioned_paths=""
+def blank(match):
+    return re.sub(r'[^\n]', ' ', match[0])
 
-    while IFS= read -r link; do
-        [[ -z "${link}" ]] && continue
-        checked_links=$((checked_links + 1))
 
-        local path="${link%%#*}"
-        local anchor=""
-        if [[ "${link}" == *"#"* ]]; then
-            anchor="${link#*#}"
-        fi
+def visible(text):
+    # Preserve offsets for diagnostics, even across fences and comments.
+    kept = dict(lines_outside_fences(text))
+    text = '\n'.join(line if n in kept else ' ' * len(line)
+                     for n, line in enumerate(text.splitlines(), 1))
+    text = re.sub(r'\A---\n.*?\n---(?:\n|$)', blank, text, flags=re.S)
+    text = re.sub(r'^@AGENTS\.md$', lambda m: ' ' * len(m[0]), text, flags=re.M)
+    return re.sub(r'<!--.*?(?:-->|\Z)', blank, text, flags=re.S)
 
-        local target="${skill_dir}/${path}"
 
-        if [[ ! -f "${target}" ]]; then
-            echo "DRIFT ${display} :: broken pointer -- SKILL.md links to ${path} but file is missing"
-            errors=$((errors + 1))
+def slug(text):
+    text = re.sub(r'<[^>]*>', '', text)
+    text = re.sub(r'\[([^]]*)\]\([^)]*\)', r'\1', text).lower()
+    return ''.join(c for c in text if c in ' _-' or unicodedata.category(c)[0] in 'LN').replace(' ', '-')
+
+
+anchor_cache = {}
+
+
+def anchors(path):
+    if path in anchor_cache:
+        return anchor_cache[path]
+    found, used = set(), set()
+    previous = ''
+    text = visible(path.read_text())
+    found.update(re.findall(r'<a\b[^>]*\b(?:id|name)=[\'"]([^\'"]+)[\'"]', CODE.sub(blank, text)))
+    for line in text.splitlines():
+        match = re.match(r'^ {0,3}#{1,6}\s+(.*?)\s*#*\s*$', line)
+        heading = match[1] if match else previous if re.match(r'^ {0,3}(?:=+|-+)\s*$', line) and previous.strip() else None
+        if heading is not None:
+            base = slug(heading.strip())
+            candidate, i = base, 0
+            while candidate in used:
+                i += 1
+                candidate = f'{base}-{i}'
+            used.add(candidate)
+            found.add(candidate)
+        previous = line
+    anchor_cache[path] = found
+    return found
+
+
+def resolve(src, raw, comment=False):
+    path = unquote(raw.split('#', 1)[0].split('?', 1)[0])
+    if comment and path == 'AGENTS.md':
+        return root / path
+    return (src.parent / path).resolve() if path else src
+
+
+def check_link(src, line, raw, comment=False):
+    global checked
+    raw = raw.removeprefix('<').removesuffix('>')
+    if re.match(r'^[A-Za-z][A-Za-z0-9+.-]*:', raw) or raw.startswith('//'):
+        return None
+    checked += 1
+    target = resolve(src, raw, comment)
+    if not target.exists():
+        fail(src, line, 'broken link (file not found)', raw)
+    elif '#' in raw and raw.split('#', 1)[1] and target.is_file():
+        anchor = unquote(raw.split('#', 1)[1])
+        if anchor not in anchors(target):
+            fail(src, line, 'broken anchor (no heading or <a id> matches)', raw)
+    return target
+
+
+markdown = [root / name for name in ('AGENTS.md', 'CLAUDE.md', 'README.md', 'CONTRIBUTING.md', 'AI-WORKFLOWS.md')]
+markdown += list((root / '.github/prompts').glob('*.md'))
+markdown += list(skills.rglob('*.md'))
+files = sorted(set(p for p in markdown if p.is_file()))
+for src in files:
+    rel = src.relative_to(root)
+    skill = rel.parts[2] if src.is_relative_to(skills) else None
+    entry = skill and src == skills / skill / 'SKILL.md'
+    mentioned = set()
+    text = visible(src.read_text())
+    plain = CODE.sub(blank, text)
+    for match in re.finditer(r'^ {0,3}\[[^]\n]+\]:\s*\S', plain, re.M):
+        fail(src, plain[:match.start()].count('\n') + 1,
+             'reference-style link definition, use an inline link', match[0])
+    for match in LINK.finditer(plain):
+        target = check_link(src, plain[:match.start()].count('\n') + 1, match[1])
+        if target:
+            mentioned.add(target)
+    # Labels may contain code; erase complete links before inspecting prose.
+    prose = LINK.sub(blank, text)
+    pattern = r'(?<![\w/.-])(?:[\w.-]+/)*(?:AGENTS\.md|CLAUDE\.md|(?:\.claude|\.agents)/skills/[\w.-]+/SKILL\.md|references/[\w./-]+\.md)(?:#[\w.-]+)?'
+    for match in re.finditer(pattern, prose):
+        raw = match[0]
+        line_no = prose[:match.start()].count('\n') + 1
+        # The initializer marks a pruned file "<path> (omitted)"; honour the
+        # marker only while the file is really absent.
+        omitted = prose.startswith(' (omitted)', match.end()) and not (src.parent / raw.split('#')[0]).exists()
+        if os.environ['STRICT_PROSE_PATHS'] == '1' and skill not in vendored and not omitted:
+            fail(src, line_no, 'path named in prose, make it a link', raw)
+        # Non-strict historical trees still require real reference pointers.
+        if entry and 'references/' in raw:
+            mentioned.add(check_link(src, line_no, raw))
+    if entry and skill not in vendored:
+        for ref in (src.parent / 'references').rglob('*.md'):
+            if ref.name != 'README.md' and ref.resolve() not in mentioned:
+                fail(src, 1, 'orphan reference', str(ref.relative_to(root)))
+
+# Scan comments, including scan-constitution.sh in the canonical skill tree.
+code_files = {root / 'eslint.config.mts'}
+for folder in (root / 'scripts', root / '.claude/scripts', root / '.husky', skills):
+    code_files.update(p for p in folder.rglob('*') if p.is_file() and p.suffix != '.md')
+for src in sorted(code_files):
+    if not src.is_file() or 'tests' in src.relative_to(root).parts or '__pycache__' in src.parts:
+        continue
+    try:
+        text = src.read_text()
+    except (UnicodeError, OSError):
+        continue
+    for line_no, line in enumerate(text.splitlines(), 1):
+        # Gate annotations use line comments; also accept block-comment lines.
+        if not re.match(r'^\s*(?:#|//|/\*|\*)', line) and not re.search(r'\s(?:#|//)\s', line):
             continue
-        fi
+        line = re.sub(r'[A-Za-z][A-Za-z0-9+.-]*://\S+', '', line)
+        for raw in re.findall(r'[\w./-]+\.md#[\w.-]+', line):
+            check_link(src, line_no, raw, comment=True)
 
-        mentioned_paths="${mentioned_paths}
-${path}"
-
-        if [[ -n "${anchor}" ]]; then
-            local target_anchors
-            target_anchors="$(collect_anchors "${target}")"
-            if ! printf '%s\n' "${target_anchors}" | grep -F -x -q -- "${anchor}"; then
-                echo "DRIFT ${display} :: broken anchor -- ${path}#${anchor} (no matching ## heading)"
-                errors=$((errors + 1))
-            fi
-        fi
-    done < <(extract_reference_links "${skill_md}")
-
-    # Orphan check: every references/*.md file should be linked from the SKILL.md.
-    # README.md inside references/ is exempt -- directory-level index.
-    [[ -d "${refs_dir}" ]] || return 0
-
-    while IFS= read -r ref_file; do
-        local nested_rel="${ref_file#${skill_dir}/}"
-        local base
-        base="$(basename "${ref_file}")"
-        if [[ "${base}" == "README.md" ]]; then
-            continue
-        fi
-        if ! printf '%s' "${mentioned_paths}" | grep -F -x -q -- "${nested_rel}"; then
-            echo "DRIFT ${display} :: orphan reference -- ${nested_rel} exists but SKILL.md does not link to it"
-            errors=$((errors + 1))
-        fi
-    done < <(find "${refs_dir}" -type f -name '*.md')
-}
-
-while IFS= read -r skill_md; do
-    skill_dir="$(dirname "${skill_md}")"
-    check_skill_file "${skill_md}" "${skill_dir}" "$(basename "${skill_dir}")"
-done < <(find "${SKILLS_DIR}" -mindepth 2 -maxdepth 2 -name SKILL.md -type f | sort)
-
-echo
-echo "Checked ${checked_skills} skill(s) and ${checked_links} reference link(s); ${errors} drift(s)."
-[[ "${errors}" -eq 0 ]] || exit 1
+for error in errors:
+    print(error)
+print(f'Checked {len(files)} Markdown file(s) and {checked} link(s); {len(errors)} drift(s).')
+sys.exit(bool(errors))
+PY

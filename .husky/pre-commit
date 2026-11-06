@@ -29,7 +29,7 @@ fi
 # generated skill trees, the workflow map, the Copilot prompt, the rule
 # manifest, the vendored-skill lock, the Constitution hook (its rule ids are
 # checked by check:skills-drift), and the scripts that gate or generate them.
-if touches '^(AGENTS\.md$|CLAUDE\.md$|AI-WORKFLOWS\.md$|\.claude/skills/|\.agents/skills/|\.github/prompts/|skills-lock\.json$|\.claude/scripts/enforce_constitution\.py$|scripts/rules-manifest\.txt$|scripts/(check-agents-md|check-skills-sync|sync-skills|check-skill-shape|sync-upstream-skills|check-rules-drift|check-skill-references-drift|check-heading-pointers|check-skill-crossrefs)\.sh$)'; then
+if touches '^(AGENTS\.md$|CLAUDE\.md$|AI-WORKFLOWS\.md$|\.claude/skills/|\.agents/skills/|\.github/prompts/|skills-lock\.json$|\.claude/scripts/enforce_constitution\.py$|scripts/rules-manifest\.txt$|README\.md$|CONTRIBUTING\.md$|eslint\.config\.mts$|\.husky/|\.claude/scripts/|scripts/)'; then
     npm run --silent check:agents-md
     npm run --silent check:skills-sync
     npm run --silent check:skills-shape
@@ -38,6 +38,7 @@ if touches '^(AGENTS\.md$|CLAUDE\.md$|AI-WORKFLOWS\.md$|\.claude/skills/|\.agent
     npm run --silent check:skills-references
     npm run --silent check:skills-headings
     npm run --silent check:skills-crossrefs
+    npm run --silent check:gates-selftest
 fi
 
 # Version surfaces.
