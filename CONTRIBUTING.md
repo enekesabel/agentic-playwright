@@ -4,13 +4,13 @@ Thanks for your interest in improving Agentic Playwright!
 
 ## Before you start
 
-This repository is unusual in one important way: **the AI rule trees are part of the product.** The Constitution (`AGENTS.md`), the skills (`.claude/skills/`) and their generated copy for Codex, Cursor and GitHub Copilot (`.agents/skills/`) define how AI coding agents behave inside a generated project. Changes to code and changes to rules usually travel together.
+This repository is unusual in one important way: **the AI rule trees are part of the product.** The Constitution ([AGENTS.md](AGENTS.md)), the skills (`.claude/skills/`) and their generated copy for Codex, Cursor and GitHub Copilot (`.agents/skills/`) define how AI coding agents behave inside a generated project. Changes to code and changes to rules usually travel together.
 
 That means contributions are checked by more gates than a typical repo:
 
 1. **ESLint + Prettier + `tsc --noEmit`** — standard code quality.
-2. **Skill gates (`npm run check:skills`)** — eight gates over the rules layer: the `AGENTS.md` budget and Skills Index, skill shape, vendored-skill hashes, and drift between the Constitution, the skills and the hook.
-3. **Cross-reference and sync gates** — part of the same eight: skills reference each other and the Constitution, and the gates fail if a rename or rule change leaves a dangling reference or lets the generated `.agents/skills/` drift from `.claude/skills/`.
+2. **Skill gates (`npm run check:skills`)** — nine gates over the rules layer: the [AGENTS.md](AGENTS.md) budget and Skills Index, skill shape, vendored-skill hashes, drift between the Constitution, the skills and the hook, and the fixture self-test (`check:gates-selftest`).
+3. **Cross-reference and sync gates** — part of the same nine: skills reference each other and the Constitution, and the gates fail if a rename or rule change leaves a dangling reference or lets the generated `.agents/skills/` drift from `.claude/skills/`.
 4. **Version single-sourcing (`npm run check:version`)** — `VERSION`, `package.json`, and the latest `CHANGELOG.md` heading must agree.
 
 Run everything locally before pushing:
@@ -24,8 +24,8 @@ npx playwright test        # requires env/.env.dev — see README "Environment V
 
 ## Ground rules for changes
 
-- **Follow the Constitution.** The rules in `AGENTS.md` apply to contributed test code too: fixtures over manual instantiation, web-first assertions, no hard waits, no `any`, `z.strictObject()` for API schemas, one tag per test.
-- Every Constitution row carries a `rule-<slug>` anchor (lowercase kebab-case, punctuation dropped). Link to its [Constitution](AGENTS.md#constitution) row instead of restating it.
+- **Follow the Constitution.** The [Constitution](AGENTS.md#constitution) applies to contributed test code too.
+- Every Constitution row carries a `rule-<slug>` anchor (lowercase kebab-case, punctuation dropped). Each rule has one home: a [Constitution](AGENTS.md#constitution) row or its owning skill’s Critical block. Elsewhere, link with the rule’s name as the text instead of restating it; a link stands alone unless the sentence after it adds detail the row does not have. Link rule-tree Markdown paths in prose too; `npm run check:skills` fails on broken links, missing anchors, reference-style definitions and rule-tree paths named in prose.
 - **Edit the canonical tree only.** Change a skill under `.claude/skills/`, run `npm run skills:sync`, and commit both trees; `npm run check:skills` fails otherwise.
 - **Vendored skills are off-limits for direct edits.** `skill-creator` and `playwright-cli` are tracked in `skills-lock.json` and synced from upstream; local edits get overwritten. Open an issue instead.
 - **New behavior needs an example.** A new pattern (fixture type, data tier, selector rule) should come with a small example file demonstrating it.

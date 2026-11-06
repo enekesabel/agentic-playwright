@@ -5,7 +5,7 @@ description: Review a Git branch as a PR against the base branch (auto-resolved 
 
 # PR Reviewer
 
-You are reviewing a branch as a pull request, the way a careful human reviewer on this team would — against **this repo's own contract**, not generic best practice. The contract is `AGENTS.md` (the Constitution — MUST / SHOULD / WON'T lists) plus the specialized skill files in `.agents/skills/` that govern whatever the branch touched. A finding only counts if you can tie it to a concrete rule, a real bug, or a coverage gap — opinion without a rule behind it is noise.
+You are reviewing a branch as a pull request, the way a careful human reviewer on this team would — against **this repo's own contract**, not generic best practice. The contract is [AGENTS.md](../../AGENTS.md) (the Constitution — MUST / SHOULD / WON'T lists) plus the specialized skill files in `.agents/skills/` that govern whatever the branch touched. A finding only counts if you can tie it to a concrete rule, a real bug, or a coverage gap — opinion without a rule behind it is noise.
 
 The deliverable is a **report**, not a code change. Fixing is opt-in, after the report.
 
@@ -58,7 +58,7 @@ Three-dot diffs against the **merge-base** — only what the branch authored. Tw
 
 ### Phase 3 — Route changed paths to skills
 
-Read the routed skill files in `.agents/skills/<name>/SKILL.md` before reviewing; always also hold `AGENTS.md`.
+Read the routed skill files in `.agents/skills/<name>/SKILL.md` before reviewing; always also hold [AGENTS.md](../../AGENTS.md).
 
 | Changed path (glob)                                         | Read these skills                                 |
 | ----------------------------------------------------------- | ------------------------------------------------- |
@@ -76,7 +76,7 @@ Read the routed skill files in `.agents/skills/<name>/SKILL.md` before reviewing
 | `helpers/**`                                                | `helpers`                                         |
 | any `**/*.ts`                                               | `type-safety`                                     |
 
-Area not in the table → fall back to the AGENTS.md skills index, pick the closest match.
+Area not in the table → fall back to the [AGENTS.md](../../AGENTS.md#skills-index) skills index, pick the closest match.
 
 ### Phase 4 — Verify (run the checks)
 
@@ -113,9 +113,9 @@ npx playwright test <changed spec path> --project <project-name>
 
 Check at minimum:
 
-- **MUST** for the area — API: `expect(Schema.parse(body)).toBeTruthy()` exactly; `z.strictObject()` not `z.object()`; 2+ API calls each in own `test.step()`; one tag/test; URLs/paths/messages from `config`/`enums`; state-mutating tests have cleanup hooks.
-- **WON'T** — no `any`, no XPath, no `waitForTimeout()`, no hardcoded secrets/content, no loose schemas, no tags on `describe`, no silent coverage drops.
-- **Contract fidelity (STRICT).** Schemas mirror the documented OpenAPI/Swagger contract. When live API disagrees with the contract, the API is the bug, NEVER the schema. Flag as 🔴 any schema-loosening (`z.strictObject`→`z.object`; added `.optional()`/`.nullable()`/`.passthrough()`/`.catchall()` or widened type to swallow a runtime value; deleted documented field; precise validator → looser) even if it makes a test pass. Sanctioned fix: `test.skip` + `// FIXME: <ticket>`.
+- **MUST** for the area — [Response Validation](../../AGENTS.md#rule-response-validation), [Strict Schemas](../../AGENTS.md#rule-strict-schemas), [API Test Steps](../../AGENTS.md#rule-api-test-steps), [No Multiple Tags](../../AGENTS.md#rule-no-multiple-tags), [Sources of Truth](../../AGENTS.md#rule-sources-of-truth), [State Cleanup](../../AGENTS.md#rule-state-cleanup). Review `strictObject` usage against the schema rule.
+- **WON'T** — [No `any`](../../AGENTS.md#rule-no-any), [No XPath](../../AGENTS.md#rule-no-xpath), [No Hard Waits](../../AGENTS.md#rule-no-hard-waits), [No Secrets](../../AGENTS.md#rule-no-secrets), [No Hardcoded Test Content](../../AGENTS.md#rule-no-hardcoded-test-content), [No Loose Schemas](../../AGENTS.md#rule-no-loose-schemas), [No Tags on Describe](../../AGENTS.md#rule-no-tags-on-describe), [No Silent Coverage Drops](../../AGENTS.md#rule-no-silent-coverage-drops).
+- **Contract fidelity (STRICT).** Schemas mirror the documented OpenAPI/Swagger contract. When live API disagrees with the contract, the API is the bug, NEVER the schema. Flag as 🔴 any schema-loosening (`z.strictObject`→`z.object`; added `.optional()`/`.nullable()`/`.passthrough()`/`.catchall()` or widened type to swallow a runtime value; deleted documented field; precise validator → looser) even if it makes a test pass. See [Explore Before Generate](../../AGENTS.md#rule-explore-before-generate).
 - **Sibling consistency** — divergence from the nearest file of the same kind is a finding.
 - **Real bugs** — logic errors, wrong assertions, `.find()` on possibly-empty response, off-by-one, copy-paste leftovers (stale qase IDs, wrong endpoint).
 - **Coverage gaps** + **scope creep**.
@@ -128,7 +128,7 @@ Check at minimum:
 .agents/skills/pr-reviewer/scripts/scan-constitution.sh "$BASE"
 ```
 
-Then read `.agents/skills/pr-reviewer/references/constitution-checklist.md` and walk the judgment items (coverage gaps, sibling divergence, schema-vs-contract fidelity, cleanup hooks, return types, feedback-message selectors) against the three-dot diff. Record ✅/❌/➖ with `file:line`. Every ❌ becomes a report finding at its tier. Couldn't evaluate (env) → say so, don't mark ✅.
+Then read [.agents/skills/pr-reviewer/references/constitution-checklist.md](../../.agents/skills/pr-reviewer/references/constitution-checklist.md) and walk the judgment items (coverage gaps, sibling divergence, schema-vs-contract fidelity, cleanup hooks, return types, feedback-message selectors) against the three-dot diff. Record ✅/❌/➖ with `file:line`. Every ❌ becomes a report finding at its tier. Couldn't evaluate (env) → say so, don't mark ✅.
 
 ### Phase 7 — Report
 
@@ -153,6 +153,6 @@ Only if Phase 8 changed files and re-verification passes. Never commit without e
 - Read-only until Phase 7 approved. "Review" → report only.
 - Three-dot diff always.
 - Every finding needs a hook — rule, bug, or missing case.
-- Runtime ≠ contract: report mismatches via `test.skip` + `// FIXME`, never relax the schema.
+- [Explore Before Generate](../../AGENTS.md#rule-explore-before-generate) for runtime/contract mismatches.
 - Env failures aren't branch failures.
 - A comment/test-name vs code gap is itself a finding.
