@@ -160,30 +160,43 @@ echo "    shared rules via .claude/scripts/enforce_constitution.py --scan"
 echo
 
 # ---- Rows backed by the shared engine (rule-id → checklist row) ------------
+# AGENTS.md#rule-imports
 report "🔴" "[1] specs import test/expect from test-options, not @playwright/test" \
     "$(hits_for no-playwright-test-import)"
+# AGENTS.md#rule-dependency-injection, AGENTS.md#rule-no-manual-instantiation
 report "🔴" "[2] no 'new XxxPage()/XxxComponent()' in specs" \
     "$(hits_for no-manual-instantiation)"
+# AGENTS.md#rule-strict-schemas, AGENTS.md#rule-no-loose-schemas
 report "🔴" "[4] z.strictObject (no z.object) in fixtures/api/schemas" \
     "$(hits_for no-loose-schema)"
+# AGENTS.md#rule-sources-of-truth
 report "🔴" "[12] no hardcoded url:/baseUrl: literal (env/config + enums instead)" \
     "$(hits_for no-hardcoded-url)"
+# AGENTS.md#rule-sources-of-truth
 report "🔴" "[12] no page.goto() with a URL literal (env APP_URL + route enums)" \
     "$(hits_for no-hardcoded-goto-url)"
+# AGENTS.md#rule-no-xpath, AGENTS.md#rule-selectors
 report "🔴" "[16] no XPath selectors" \
     "$(hits_for no-xpath)"
+# AGENTS.md#rule-no-hard-waits, AGENTS.md#rule-assertions
 report "🔴" "[20] no waitForTimeout / hard waits" \
     "$(hits_for no-hard-wait)"
+# AGENTS.md#rule-no-json-static-data
 report "🔴" "[23] no JSON under test-data/static" \
     "$(hits_for no-json-static-data)"
+# AGENTS.md#rule-data-strategy
 report "🔴" "[23] static data is literals-only (no faker/runtime imports)" \
     "$(hits_for no-runtime-code-in-static-data)"
+# AGENTS.md#rule-no-multiple-tags
 report "🔴" "[25] no @functional tag" \
     "$(hits_for no-functional-tag)"
+# AGENTS.md#rule-no-multiple-tags
 report "🔴" "[25] exactly one tag per test" \
     "$(hits_for no-multiple-tags)"
+# AGENTS.md#rule-no-tags-on-describe
 report "🔴" "[25] no tag on test.describe()" \
     "$(hits_for no-tags-on-describe)"
+# AGENTS.md#rule-data-strategy
 report "🔴" "[24] no inline universal invalid-value arrays (import INVALID_*)" \
     "$(hits_for no-inline-universal-invalids)"
 
@@ -194,6 +207,7 @@ report "🔴" "[--] other Constitution-engine violations" "$UNMAPPED"
 
 # ---- Scan-only checks (review-time signals, not PreToolUse-blockable) ------
 
+# AGENTS.md#rule-no-any, AGENTS.md#rule-type-safety
 # [3] no `any` (ESLint no-explicit-any is the authoritative gate; this is the
 # quick review-time signal). `as any` needs a left non-letter boundary —
 # without it, prose like "has anything" in a comment contains the substring
@@ -201,23 +215,28 @@ report "🔴" "[--] other Constitution-engine violations" "$UNMAPPED"
 report "🔴" "[3] no 'any' type" \
     "$(g ':\s*any\b|<any>|(^|[^A-Za-z])as any\b|Array<any>|: any\[\]' "${TS_FILES[@]:-}")"
 
+# AGENTS.md#rule-strict-schemas, AGENTS.md#rule-no-loose-schemas
 # [4-soft] z.object( outside schema files — fine unless it validates an API response
 soft_report "🟡" "[4] z.object( outside fixtures/api/schemas (ok unless it validates an API response)" \
     "$(g '\bz\.object\(' "${TS_FILES[@]:-}" | grep -v 'fixtures/api/schemas/' || true)"
 
+# AGENTS.md#rule-no-magic-numbers
 # [21] magic-number timeouts: numeric literal passed to timeout:
 soft_report "🟡" "[21] possible magic-number timeout" \
     "$(g 'timeout:\s*[0-9]{3,}' "${TS_FILES[@]:-}")"
 
+# AGENTS.md#rule-sources-of-truth
 # [12-soft] any other http(s) literal the narrow hard rule didn't catch
 soft_report "🟡" "[12] other https?:// literal (should come from env/config)" \
     "$(g "['\"\`]https?://" "${TS_FILES[@]:-}" | grep -vE '^\S+:[0-9]+:\s*(//|\*|/\*)' || true)"
 
+# AGENTS.md#rule-imports
 # [1-info] any other @playwright/test import in a spec (usually a type) —
 # allowed, but listed so the reviewer can sanity-check it's type-only.
 OTHER_PW_IMPORT="$(g "from ['\"]@playwright/test['\"]" "${SPEC_FILES[@]:-}" | grep -vE '\b(test|expect)\b' || true)"
 [[ -n "${OTHER_PW_IMPORT// }" ]] && { echo "ℹ️  [1] other @playwright/test imports in specs (ok if type-only):"; echo "${OTHER_PW_IMPORT}" | sed 's/^/      /'; }
 
+# AGENTS.md#rule-response-validation
 # [8] response assertion shape — informational: list Schema.parse() calls so the
 # reviewer can confirm each is the `expect(Schema.parse(body)).toBeTruthy()` form.
 # Exclude JSON.parse — that's deserialization, not schema validation.

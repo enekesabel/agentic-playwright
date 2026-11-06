@@ -257,6 +257,7 @@ PROTECTED_PATH = re.compile(
     re.I,
 )
 
+# AGENTS.md#rule-explore-before-generate, AGENTS.md#rule-no-substitute-ui-exploration
 # Explore-before-generate marker: scripts/playwright-cli.sh touches this file
 # when an exploration command (open/goto/snapshot/click/...) runs. Creating a
 # NEW page object without a fresh marker means selectors are being invented
@@ -270,6 +271,7 @@ EXPLORE_MARKER_MAX_AGE_MIN = int(os.environ.get("EXPLORE_MARKER_MAX_AGE_MIN", "2
 # extract ids from the markers and cross-check the count of rule tuples.
 RULES = [
     (
+        # AGENTS.md#rule-imports
         "no-playwright-test-import",  # hook-rule-id
         lambda p: SPEC_FILE.search(p),
         lambda c: PLAYWRIGHT_VALUE_IMPORT.search(c),
@@ -278,6 +280,7 @@ RULES = [
         "(Constitution MUST: Imports).",
     ),
     (
+        # AGENTS.md#rule-no-hard-waits, AGENTS.md#rule-assertions
         "no-hard-wait",  # hook-rule-id
         lambda p: TS_FILE.search(p),
         lambda c: HARD_WAIT.search(c),
@@ -286,6 +289,7 @@ RULES = [
         "`expect(locator).toBeVisible()` (Constitution WON'T: No Hard Waits).",
     ),
     (
+        # AGENTS.md#rule-strict-schemas, AGENTS.md#rule-no-loose-schemas
         "no-loose-schema",  # hook-rule-id
         lambda p: SCHEMA_FILE.search(p),
         lambda c: LOOSE_SCHEMA.search(c),
@@ -294,13 +298,15 @@ RULES = [
         "(Constitution WON'T: No Loose Schemas).",
     ),
     (
+        # AGENTS.md#rule-no-xpath, AGENTS.md#rule-selectors
         "no-xpath",  # hook-rule-id
         lambda p: UI_OR_TEST_FILE.search(p),
         lambda c: XPATH_SELECTOR.search(c),
-        "XPath selectors are forbidden. Use getByRole > getByLabel > getByPlaceholder > "
-        "getByText > getByTestId (Constitution WON'T: No XPath).",
+        "XPath selectors are forbidden. Follow the Selectors priority in "
+        "AGENTS.md#rule-selectors (Constitution WON'T: No XPath).",
     ),
     (
+        # AGENTS.md#rule-no-json-static-data
         "no-json-static-data",  # hook-rule-id
         lambda p: STATIC_JSON.search(p),
         None,
@@ -308,6 +314,7 @@ RULES = [
         "JSON is forbidden (Constitution WON'T: No JSON Static Data).",
     ),
     (
+        # AGENTS.md#rule-no-multiple-tags
         "no-functional-tag",  # hook-rule-id
         lambda p: SPEC_FILE.search(p),
         lambda c: re.search(r"@functional(?![\w-])", c),
@@ -315,6 +322,7 @@ RULES = [
         "@regression, @e2e, @api, @destructive (Constitution WON'T: No Multiple Tags).",
     ),
     (
+        # AGENTS.md#rule-no-multiple-tags
         "no-multiple-tags",  # hook-rule-id
         lambda p: SPEC_FILE.search(p),
         lambda c: MULTI_TAG_TITLE.search(c) or MULTI_TAG_ARRAY.search(c) or MULTI_TAG_TITLE_OPTION.search(c),
@@ -323,6 +331,7 @@ RULES = [
         "(Constitution WON'T: No Multiple Tags).",
     ),
     (
+        # AGENTS.md#rule-no-tags-on-describe
         "no-tags-on-describe",  # hook-rule-id
         lambda p: SPEC_FILE.search(p),
         lambda c: TAG_IN_DESCRIBE.search(c) or DESCRIBE_TAG_OPTION.search(c),
@@ -330,6 +339,7 @@ RULES = [
         "its `{ tag: ... }` option (Constitution WON'T: No Tags on Describe).",
     ),
     (
+        # AGENTS.md#rule-dependency-injection, AGENTS.md#rule-no-manual-instantiation
         "no-manual-instantiation",  # hook-rule-id
         lambda p: SPEC_FILE.search(p),
         lambda c: MANUAL_INSTANTIATION.search(c),
@@ -338,6 +348,7 @@ RULES = [
         "WON'T: No Manual Instantiation).",
     ),
     (
+        # AGENTS.md#rule-data-strategy
         "no-runtime-code-in-static-data",  # hook-rule-id
         lambda p: STATIC_TS.search(p),
         lambda c: re.search(r"\bfaker\.", c) or NON_TYPE_IMPORT.search(c),
@@ -346,6 +357,7 @@ RULES = [
         "belongs in `test-data/factories/` (data-strategy skill, three-tier rule).",
     ),
     (
+        # AGENTS.md#rule-sources-of-truth
         "no-hardcoded-url",  # hook-rule-id
         lambda p: TEST_OR_FIXTURE_TS.search(p),
         lambda c: HARDCODED_URL.search(c),
@@ -355,6 +367,7 @@ RULES = [
         "paths from `enums/{area}/*` (Constitution MUST: Sources of Truth).",
     ),
     (
+        # AGENTS.md#rule-sources-of-truth
         "no-hardcoded-goto-url",  # hook-rule-id
         lambda p: TEST_OR_FIXTURE_TS.search(p),
         lambda c: HARDCODED_GOTO_URL.search(c),
@@ -363,6 +376,7 @@ RULES = [
         "(Constitution MUST: Sources of Truth).",
     ),
     (
+        # AGENTS.md#rule-data-strategy
         "no-inline-universal-invalids",  # hook-rule-id
         lambda p: SPEC_FILE.search(p),
         lambda c: INLINE_UNIVERSAL_INVALIDS.search(c),
@@ -371,6 +385,7 @@ RULES = [
         "(data-strategy skill: universal arrays are imported, never redefined).",
     ),
     (
+        # AGENTS.md#rule-no-multiple-tags
         "no-unknown-tag",  # hook-rule-id
         lambda p: SPEC_FILE.search(p),
         lambda c: UNKNOWN_TAG.search(c),
@@ -378,6 +393,7 @@ RULES = [
         "@e2e, @api, @destructive (Constitution WON'T: No Multiple Tags).",
     ),
     (
+        # AGENTS.md#rule-no-jsdoc-on-locators, AGENTS.md#rule-jsdoc-on-actions
         "no-jsdoc-on-locators",  # hook-rule-id
         lambda p: PAGES_TS.search(p),
         lambda c: JSDOC_ON_LOCATOR.search(c),
@@ -386,6 +402,7 @@ RULES = [
         "(Constitution WON'T: No JSDoc on Locators).",
     ),
     (
+        # AGENTS.md#rule-no-hardcoded-test-content, AGENTS.md#rule-sources-of-truth
         "no-hardcoded-test-content",  # hook-rule-id
         lambda p: SPEC_FILE.search(p),
         lambda c: HARDCODED_TEST_CONTENT.search(c),
@@ -394,6 +411,7 @@ RULES = [
         "(Constitution WON'T: No Hardcoded Test Content).",
     ),
     (
+        # AGENTS.md#rule-no-multiple-tags
         "no-missing-tag",  # hook-rule-id
         lambda p: SPEC_ONLY_FILE.search(p),
         lambda c: missing_tag(c),
@@ -402,6 +420,7 @@ RULES = [
         "(Constitution WON'T: No Multiple Tags).",
     ),
     (
+        # AGENTS.md#rule-linting
         "no-eslint-disable-scaffold",  # hook-rule-id
         lambda p: TS_FILE.search(p),
         lambda c: ESLINT_DISABLE_SCAFFOLD.search(c),
