@@ -8,7 +8,7 @@ The documented contract (OpenAPI / Swagger or an equivalent document) is the sou
 2. The API host. The demo API serves its OpenAPI JSON at `${API_URL}/docs` and a Swagger UI at `${API_URL}/api/documentation`; another API will use its own route, so check `/docs`, `/openapi.json`, `/swagger.json` and `/api/documentation`.
 3. A document the human provides.
 
-Nothing found: stop and ask. A short search that finds nothing is not "no documentation exists".
+No documentation exists: use flagged live capture. A short search that finds nothing is not "no documentation exists".
 
 ## Recording the source
 
