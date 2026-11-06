@@ -2,14 +2,9 @@
 
 ## What counts as shared state
 
-A test is `@destructive` only when it mutates state that lives outside the test and that other tests, users or sessions depend on:
+[No Multiple Tags](../../../../AGENTS.md#rule-no-multiple-tags); see the [skill-local shared-state definition](../SKILL.md#critical).
 
-- locale, language or region
-- permissions, roles, guest access
-- feature flags, global settings or configuration
-- shared seed data every test reads (deleting all users, resetting a catalog)
-
-Not destructive: a test that creates its own record, asserts on it and deletes only that record. It keeps its importance tag and runs in the parallel suite. It still needs the cleanup hook.
+[No Multiple Tags](../../../../AGENTS.md#rule-no-multiple-tags), [State Cleanup](../../../../AGENTS.md#rule-state-cleanup). Own-record tests run in the parallel suite.
 
 ## Cleanup pattern
 
@@ -44,7 +39,7 @@ test.describe('admin data management', () => {
 });
 ```
 
-The hook also runs after a failed test, so it must succeed when the test wrote nothing.
+See [cleanup hook resilience](../SKILL.md#critical) for the skill-local hook requirement.
 
 ## Running
 
@@ -53,7 +48,7 @@ The hook also runs after a failed test, so it must succeed when the test wrote n
 
 ## Suite-only failures
 
-| Symptom                          | Cause                                                                                                    | Fix                                                                                                                                        |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Passes alone, fails in the suite | Shared mutable state, a login flow without `resetStorageState`, or two tests writing the same fixed data | Per-test data from a factory; `resetStorageState` in `beforeEach`; if the test mutates shared state, retag `@destructive` and add the hook |
-| State leaks between runs         | Missing or non-idempotent `afterEach` / `afterAll`                                                       | Add the hook inside the `describe`; make it succeed after a failed test                                                                    |
+| Symptom                          | Cause                                                                                                    | Fix                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Passes alone, fails in the suite | Shared mutable state, a login flow without `resetStorageState`, or two tests writing the same fixed data | [Test Isolation](../../../../AGENTS.md#rule-test-isolation), [Data Generation](../../../../AGENTS.md#rule-data-generation): per-test data from a factory; `resetStorageState` in `beforeEach`; [No Multiple Tags](../../../../AGENTS.md#rule-no-multiple-tags), [State Cleanup](../../../../AGENTS.md#rule-state-cleanup): if the test mutates shared state, retag `@destructive` and add the hook |
+| State leaks between runs         | Missing or non-idempotent `afterEach` / `afterAll`                                                       | [State Cleanup](../../../../AGENTS.md#rule-state-cleanup): add the hook inside the `describe`; make it succeed after a failed test ([cleanup hook resilience](../SKILL.md#critical))                                                                                                                                                                                                               |

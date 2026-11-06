@@ -1,6 +1,6 @@
 # Data templates
 
-Prompt templates for Faker factories and static test data. `data-strategy` owns the tiers and the factory shape, `type-safety` the schema a factory parses against. Resolve `{area}` with `ls test-data/factories/` or `ls test-data/static/` first.
+Prompt templates for [Data Generation](../../../../../AGENTS.md#rule-data-generation) and static test data. `data-strategy` owns the tiers and the factory shape, `type-safety` the schema a factory parses against. Resolve `{area}` with `ls test-data/factories/` or `ls test-data/static/` first.
 
 ## Create a data factory
 
@@ -16,11 +16,11 @@ Validate the output with the matching schema from fixtures/api/schemas/{area}/ a
 
 ## Add static test data
 
-Pick the tier first per `data-strategy`; universal type-mismatch arrays already live in `test-data/static/util/invalid-values.ts` and are imported, never redefined.
+Pick the tier first per `data-strategy`; follow [Data Strategy](../../../../../AGENTS.md#rule-data-strategy).
 
 ```
 Create static test data for [PURPOSE] at test-data/static/{area}/[name].ts (run `ls test-data/static/` first):
 - cases: [description, value, expected outcome]
 
-Literal values only, exported as const, per the data-strategy skill.
+Follow [No JSON Static Data](../../../../../AGENTS.md#rule-no-json-static-data) and the data-strategy skill.
 ```

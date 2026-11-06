@@ -7,12 +7,4 @@
 # Critical block and the grep would still hit something else. A stylistic
 # rewrite of a Critical block should force a deliberate manifest update.
 fuzz path parameters|api-testing|Path-parameter fuzzing
-waitForTimeout|test-standards|No hard waits
-exactly one** tag|test-standards|Single-tag rule
-@destructive|test-standards|@destructive heaviest
-Every state-mutating test|test-standards|State cleanup hooks
-confirm zero failures|test-standards|Test verification after edits
-must be independent|test-standards|Test isolation
-explore-only|test-standards|No explore-only files
-expect(locator)|test-standards|Web-first assertions
 find all consumers|refactor-values|Impact-analysis first

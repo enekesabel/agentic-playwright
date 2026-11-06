@@ -9,32 +9,35 @@ description: Use when the user wants a prompt template ("give me a prompt for X"
 
 - **Resolve `{area}` before filling any template.** Run the row's `ls` and substitute the real folder name; never guess it.
 - **Templates are starters.** The leaf skill in the row owns the rules; load it and follow it end to end instead of restating its rules in the prompt.
-- **Walk `references/verification-checklist.md` after generating**, also when routing skipped this skill and went straight to a leaf skill.
+- **Walk [references/verification-checklist.md](references/verification-checklist.md) after generating**, also when routing skipped this skill and went straight to a leaf skill.
+
+- [No Empty-Body-Only 400](../../../AGENTS.md#rule-no-empty-body-only-400): every body field is covered; use the universal arrays.
+- API: path parameters have the invalid-format loop; secured endpoints have 401 and 403 tests; every endpoint has one 405 test.
 
 ## Procedure
 
 1. Match the request to one row and run its `ls`:
 
-    | Artifact                            | Template                               | Leaf skill                   | `ls` first                                           |
-    | ----------------------------------- | -------------------------------------- | ---------------------------- | ---------------------------------------------------- |
-    | Page object                         | `references/templates/page-objects.md` | `page-objects`               | `ls pages/`                                          |
-    | Component                           | `references/templates/components.md`   | `page-objects`               | none                                                 |
-    | Functional, E2E or data-driven test | `references/templates/tests.md`        | `test-standards`             | `ls tests/`, `ls test-data/static/`                  |
-    | API test                            | `references/templates/tests.md`        | `api-testing`                | `ls tests/`, `ls fixtures/api/schemas/`, `ls enums/` |
-    | Zod schema                          | `references/templates/api-schemas.md`  | `api-testing`, `type-safety` | `ls fixtures/api/schemas/`                           |
-    | Factory or static data              | `references/templates/data.md`         | `data-strategy`              | `ls test-data/factories/`, `ls test-data/static/`    |
-    | Fixture                             | `references/templates/fixtures.md`     | `fixtures`, `helpers`        | none                                                 |
+    | Artifact                            | Template                                                                     | Leaf skill                   | `ls` first                                           |
+    | ----------------------------------- | ---------------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------- |
+    | Page object                         | [references/templates/page-objects.md](references/templates/page-objects.md) | `page-objects`               | `ls pages/`                                          |
+    | Component                           | [references/templates/components.md](references/templates/components.md)     | `page-objects`               | none                                                 |
+    | Functional, E2E or data-driven test | [references/templates/tests.md](references/templates/tests.md)               | `test-standards`             | `ls tests/`, `ls test-data/static/`                  |
+    | API test                            | [references/templates/tests.md](references/templates/tests.md)               | `api-testing`                | `ls tests/`, `ls fixtures/api/schemas/`, `ls enums/` |
+    | Zod schema                          | [references/templates/api-schemas.md](references/templates/api-schemas.md)   | `api-testing`, `type-safety` | `ls fixtures/api/schemas/`                           |
+    | Factory or static data              | [references/templates/data.md](references/templates/data.md)                 | `data-strategy`              | `ls test-data/factories/`, `ls test-data/static/`    |
+    | Fixture                             | [references/templates/fixtures.md](references/templates/fixtures.md)         | `fixtures`, `helpers`        | none                                                 |
 
 2. Open the template, copy the block, replace every `[PLACEHOLDER]` and `{area}`; none may remain.
 3. Load the leaf skill; generate per its Critical block and Procedure.
-4. Walk the checklist, then run `npx playwright test <file>`; red → `debugging`.
+4. Walk the checklist, then follow [Test Verification](../../../AGENTS.md#rule-test-verification); red → `debugging`.
 
 ## References
 
-- `references/verification-checklist.md`: after every generated artifact.
-- `references/templates/page-objects.md`: page object with or without exploration, add locators, add an action method.
-- `references/templates/components.md`: reusable component.
-- `references/templates/tests.md`: functional, E2E, data-driven and API tests.
-- `references/templates/api-schemas.md`: schema from the documentation, fallback capture, add fields.
-- `references/templates/data.md`: factory, static data set.
-- `references/templates/fixtures.md`: page-object fixture, helper fixture, fixture category.
+- [references/verification-checklist.md](references/verification-checklist.md): after every generated artifact.
+- [references/templates/page-objects.md](references/templates/page-objects.md): page object with or without exploration, add locators, add an action method.
+- [references/templates/components.md](references/templates/components.md): reusable component.
+- [references/templates/tests.md](references/templates/tests.md): functional, E2E, data-driven and API tests.
+- [references/templates/api-schemas.md](references/templates/api-schemas.md): schema from the documentation, fallback capture, add fields.
+- [references/templates/data.md](references/templates/data.md): factory, static data set.
+- [references/templates/fixtures.md](references/templates/fixtures.md): page-object fixture, helper fixture, fixture category.

@@ -1,17 +1,17 @@
 # Tags
 
-One tag per test, in the options object: `test('…', { tag: '@smoke' }, async () => {})`.
+[No Multiple Tags](../../../../AGENTS.md#rule-no-multiple-tags), [No Tags on Describe](../../../../AGENTS.md#rule-no-tags-on-describe). Options-object example: `test('…', { tag: '@smoke' }, async () => {})`.
 
-| Tag            | Covers                                                               | Suite                                     |
-| -------------- | -------------------------------------------------------------------- | ----------------------------------------- |
-| `@smoke`       | Critical-path functional tests, run first and most often             | `npm run test:smoke`                      |
-| `@sanity`      | Key functionality verification                                       | `npm run test:sanity`                     |
-| `@regression`  | Full coverage of one behaviour, including data-driven negative cases | `npm run test:regression`                 |
-| `@e2e`         | One multi-feature user journey per test                              | `npm run test:e2e`                        |
-| `@api`         | API contract and schema validation, whatever its importance          | `npm run test:api`                        |
-| `@destructive` | Mutates shared/global state (see `destructive-tests.md`)             | `npm run test:destructive`, single worker |
+| Tag            | Covers                                                                                                                                          | Suite                                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| `@smoke`       | Critical-path functional tests, run first and most often                                                                                        | `npm run test:smoke`                      |
+| `@sanity`      | Key functionality verification                                                                                                                  | `npm run test:sanity`                     |
+| `@regression`  | Full coverage of one behaviour, including data-driven negative cases                                                                            | `npm run test:regression`                 |
+| `@e2e`         | One multi-feature user journey per test                                                                                                         | `npm run test:e2e`                        |
+| `@api`         | API contract and schema validation, whatever its importance                                                                                     | `npm run test:api`                        |
+| `@destructive` | Mutates shared/global state ([No Multiple Tags](../../../../AGENTS.md#rule-no-multiple-tags); see [destructive-tests.md](destructive-tests.md)) | `npm run test:destructive`, single worker |
 
-`npm test` runs every tag except `@destructive`. Each suite filters with `--grep`, so a test belongs to exactly one suite.
+`npm test` runs every tag except `@destructive`. Each suite filters with `--grep`; see [No Multiple Tags](../../../../AGENTS.md#rule-no-multiple-tags).
 
 ## Wrong forms
 
