@@ -434,6 +434,17 @@ async function main() {
     const pruned = [];
     if (!keepClaude) {
         pruneTree(projectDir, CLAUDE_PATHS);
+        // Root docs link the rule tree; keep those links valid after pruning.
+        for (const name of ['README.md', 'AI-WORKFLOWS.md']) {
+            const docPath = path.join(projectDir, name);
+            const text = fs.readFileSync(docPath, 'utf8');
+            fs.writeFileSync(
+                docPath,
+                text
+                    .replaceAll('](.claude/skills/', '](.agents/skills/')
+                    .replace(/\[([^\]]+)\]\(CLAUDE\.md\)/g, '$1 (omitted)')
+            );
+        }
         pruned.push('Claude Code');
         log(
             '  Note: pruning Claude Code also removes the Constitution hook and its commit-time scan (both live in .claude/).'

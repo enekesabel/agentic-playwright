@@ -8,8 +8,7 @@
 # reference-style definition; backticked rule-file path named in prose;
 # missing references/ pointer; orphan references/**/*.md (README.md exempt).
 # Vendored skills from skills-lock.json skip prose/orphan checks only.
-# STRICT_PROSE_PATHS defaults to 0; set 1 to enforce prose paths (the gate
-# swap commit flips the default).
+# STRICT_PROSE_PATHS defaults to 1; set 0 only for legacy prose fixtures.
 # Strict prose checks cover AGENTS.md, CLAUDE.md, qualified skill SKILL.md
 # paths and references/*.md, including missing targets and mixed code spans.
 # Generic SKILL.md names, skill names, code paths, YAML frontmatter,
@@ -19,7 +18,7 @@
 # Bare comment tokens resolve relative to the source, with AGENTS.md rooted.
 # Exits nonzero with source, line and reason. Python standard library only.
 set -euo pipefail
-export STRICT_PROSE_PATHS="${STRICT_PROSE_PATHS:-0}"
+export STRICT_PROSE_PATHS="${STRICT_PROSE_PATHS:-1}"
 ROOT="$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd -P)"
 python3 - "${ROOT}" <<'PY'
 import json

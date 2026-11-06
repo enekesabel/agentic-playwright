@@ -26,10 +26,10 @@ if [ -f .claude/scripts/enforce_constitution.py ] \
 fi
 
 # Rule layer: the orchestrator, the Claude Code importer, the canonical and
-# generated skill trees, the workflow map, the Copilot prompt, the rule
-# manifest, the vendored-skill lock, the Constitution hook (its rule ids are
-# checked by check:skills-drift), and the scripts that gate or generate them.
-if touches '^(AGENTS\.md$|CLAUDE\.md$|AI-WORKFLOWS\.md$|\.claude/skills/|\.agents/skills/|\.github/prompts/|skills-lock\.json$|\.claude/scripts/enforce_constitution\.py$|scripts/rules-manifest\.txt$|README\.md$|CONTRIBUTING\.md$|eslint\.config\.mts$|\.husky/|\.claude/scripts/|scripts/)'; then
+# generated skill trees, the workflow map, the Copilot prompt, the
+# vendored-skill lock, the Constitution hook (its row links are
+# checked by check:skills-references), and the scripts that gate or generate them.
+if touches '^(AGENTS\.md$|CLAUDE\.md$|AI-WORKFLOWS\.md$|\.claude/skills/|\.agents/skills/|\.github/prompts/|skills-lock\.json$|\.claude/scripts/enforce_constitution\.py$|README\.md$|CONTRIBUTING\.md$|eslint\.config\.mts$|\.husky/|\.claude/scripts/|scripts/)'; then
     npm run --silent check:agents-md
     npm run --silent check:skills-sync
     npm run --silent check:skills-shape
