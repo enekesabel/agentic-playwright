@@ -19,9 +19,12 @@ on:
             - '.agents/**'
             - '.github/prompts/**'
             - '.github/workflows/skill-lint.yml'
-            - 'scripts/check-*.sh'
+            - 'scripts/**'
+            - 'README.md'
+            - 'CONTRIBUTING.md'
+            - 'eslint.config.mts'
+            - '.husky/**'
             - 'scripts/sync-*.sh'
-            - 'scripts/rules-manifest.txt'
             - 'scripts/playwright-cli.sh'
             - 'scripts/playwright-cli.cmd'
             - 'VERSION'
@@ -38,9 +41,12 @@ on:
             - '.agents/**'
             - '.github/prompts/**'
             - '.github/workflows/skill-lint.yml'
-            - 'scripts/check-*.sh'
+            - 'scripts/**'
+            - 'README.md'
+            - 'CONTRIBUTING.md'
+            - 'eslint.config.mts'
+            - '.husky/**'
             - 'scripts/sync-*.sh'
-            - 'scripts/rules-manifest.txt'
             - 'scripts/playwright-cli.sh'
             - 'scripts/playwright-cli.cmd'
             - 'VERSION'
@@ -63,8 +69,11 @@ jobs:
             - name: Constitution rules -> skill Critical blocks; hook rule ids -> Constitution rows
               run: bash scripts/check-rules-drift.sh
 
-            - name: SKILL.md -> references/ pointers, orphans, anchors
+            - name: Relative links, anchors, reference pointers and orphans
               run: bash scripts/check-skill-references-drift.sh
+
+            - name: Gate fixture self-tests
+              run: bash scripts/tests/run.sh
 
             - name: Cross-skill heading pointers resolve
               run: bash scripts/check-heading-pointers.sh

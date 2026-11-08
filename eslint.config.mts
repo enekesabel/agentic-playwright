@@ -69,7 +69,9 @@ const config = [
             'prettier/prettier': ['error', prettierConfig],
 
             // TypeScript strict rules
+            // AGENTS.md#rule-linting
             '@typescript-eslint/explicit-function-return-type': 'error',
+            // AGENTS.md#rule-no-any, AGENTS.md#rule-type-safety
             '@typescript-eslint/no-explicit-any': 'error',
             '@typescript-eslint/no-unused-vars': [
                 'error',
@@ -92,12 +94,16 @@ const config = [
             // Silent Coverage Drops) — this rule at error/warn would fail CI
             // on exactly that sanctioned pattern. Unjustified skips are a
             // review-time finding (pr-reviewer checklist), not a lint error.
+            // AGENTS.md#rule-no-silent-coverage-drops, AGENTS.md#rule-explore-before-generate
             'playwright/no-skipped-test': 'off',
 
             // Additional Playwright rules for Constitution compliance
+            // AGENTS.md#rule-no-hard-waits, AGENTS.md#rule-assertions
             'playwright/no-wait-for-timeout': 'error', // WON'T: No Hard Waits
             'playwright/no-force-option': 'warn', // Prefer natural interactions
+            // AGENTS.md#rule-assertions
             'playwright/prefer-web-first-assertions': 'error', // MUST: Web-first assertions
+            // AGENTS.md#rule-selectors
             'playwright/no-raw-locators': 'warn', // MUST: Prefer semantic locators
             'playwright/no-useless-not': 'error', // Clean assertions
             'playwright/no-nth-methods': 'warn', // Avoid brittle nth selectors
@@ -112,6 +118,7 @@ const config = [
             'playwright/no-conditional-in-test': 'warn', // Avoid flaky conditionals
             'playwright/no-eval': 'error', // Security: no eval in tests
             'playwright/valid-expect': 'error', // Valid expect usage
+            // AGENTS.md#rule-linting (test.only: see AGENTS.md#workflow)
             'playwright/no-focused-test': 'error', // No test.only in commits
             'playwright/no-standalone-expect': 'error', // Expect must be in test
         },

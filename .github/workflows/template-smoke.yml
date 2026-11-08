@@ -39,7 +39,7 @@ jobs:
                   npx eslint .
                   npx prettier --check .
 
-            - name: Generated project — the eight skill gates + version gate
+            - name: Generated project — the nine skill gates + version gate
               working-directory: /tmp/smoke/demo-project
               run: |
                   npm run check:skills

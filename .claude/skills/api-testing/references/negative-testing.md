@@ -1,8 +1,8 @@
 # Negative testing
 
-Loops for the 400/422 and 404 rows of the coverage matrix. `ApiEndpoints.PRODUCTS` and `generateProduct()` are illustrative: define the enum member (`enums`) and the factory (`data-strategy`) first. Status and error schema come from the contract; the demo API answers validation errors with 422 and `UnprocessableEntityResponseSchema` from `fixtures/api/schemas/util/errorResponseSchema.ts`.
+Loops for the 400/422 and 404 rows of the [coverage matrix](coverage-matrix.md). `ApiEndpoints.PRODUCTS` and `generateProduct()` are illustrative: define the enum member (`enums`) and the factory (`data-strategy`) first. Status and error schema come from the contract; the demo API answers validation errors with 422 and `UnprocessableEntityResponseSchema` from `fixtures/api/schemas/util/errorResponseSchema.ts`.
 
-Three tiers of invalid data, owned by `data-strategy`: the universal type-mismatch arrays (`INVALID_STRING_VALUES`, `INVALID_NUMBER_VALUES`, `INVALID_BOOLEAN_VALUES`, `INVALID_UUID_VALUES`, `INVALID_ENUM_VALUES`, `INVALID_ARRAY_VALUES`, `INVALID_OBJECT_VALUES`) are imported from `test-data/static/util/invalid-values.ts`; a domain set (malformed emails) comes from `test-data/static/{area}/`; a range violation specific to one field stays inline in the spec.
+Invalid data per [Data Strategy](../../../../AGENTS.md#rule-data-strategy), three tiers owned by `data-strategy`: the universal type-mismatch arrays (`INVALID_STRING_VALUES`, `INVALID_NUMBER_VALUES`, `INVALID_BOOLEAN_VALUES`, `INVALID_UUID_VALUES`, `INVALID_ENUM_VALUES`, `INVALID_ARRAY_VALUES`, `INVALID_OBJECT_VALUES`) are imported from `test-data/static/util/invalid-values.ts`; a domain set (malformed emails) comes from `test-data/static/{area}/`; a range violation specific to one field stays inline in the spec.
 
 ## Invalid-type loop (spread-and-override)
 
@@ -49,7 +49,7 @@ An inline range set for one field takes the same loop: `const outOfRangeRatings 
 
 ## Omission loop
 
-One test per required field, removing only that field with destructure + rest.
+[No Empty-Body-Only 400](../../../../AGENTS.md#rule-no-empty-body-only-400): one test per required field, removing only that field with destructure + rest.
 
 ```typescript
 test.describe('POST /products - missing required fields', () => {

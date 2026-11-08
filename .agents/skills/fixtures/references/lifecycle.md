@@ -66,9 +66,9 @@ Then in `fixtures/pom/test-options.ts`: `mergeTests(pageObjectFixture, apiReques
 
 ## Symptoms
 
-| Symptom                                                      | Cause                                                        | Fix                                        |
-| ------------------------------------------------------------ | ------------------------------------------------------------ | ------------------------------------------ |
-| `appPage` (or any fixture) missing on the test context       | spec imports `test` from `@playwright/test`                  | import from `fixtures/pom/test-options.ts` |
-| Fixture implemented but TypeScript rejects it on the context | property not added to `FrameworkFixtures` / `HelperFixtures` | add it to the type literal                 |
-| Teardown never runs                                          | code sits before `await use(...)`, or `use` is missing       | setup → `await use(data)` → teardown       |
-| New category not injected                                    | not merged into `test-options.ts`                            | append it to `mergeTests(...)`             |
+| Symptom                                                      | Cause                                                        | Fix                                                                                       |
+| ------------------------------------------------------------ | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
+| `appPage` (or any fixture) missing on the test context       | spec imports `test` from `@playwright/test`                  | [Imports](../../../../AGENTS.md#rule-imports): import from `fixtures/pom/test-options.ts` |
+| Fixture implemented but TypeScript rejects it on the context | property not added to `FrameworkFixtures` / `HelperFixtures` | add it to the type literal                                                                |
+| Teardown never runs                                          | code sits before `await use(...)`, or `use` is missing       | setup → `await use(data)` → teardown                                                      |
+| New category not injected                                    | not merged into `test-options.ts`                            | append it to `mergeTests(...)`                                                            |

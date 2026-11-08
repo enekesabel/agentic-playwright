@@ -6,14 +6,14 @@ What the human and the agent owe each other at Phases 3 and 5 of `ai-native-work
 
 An input is primary when the task cannot be planned without it. Missing → ask; a guess or a placeholder never stands in for it.
 
-| Intent                          | Primary inputs                                                                                                   |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Page object, UI test, component | the page URL or route, the `{area}` folder (`ls pages/`), a reachable app for `playwright-cli`                   |
-| API test, schema                | the OpenAPI or Swagger location (live HTTP only when none exists, and say so), the `{area}` folder (`ls tests/`) |
-| Factory, static data set        | the field list or the schema it feeds, the `{area}` folder (`ls test-data/`)                                     |
-| Env var, config property        | the variable name and its consumer                                                                               |
-| Enum or static-value change     | the exact old and new value, and whether the backend change is live                                              |
-| Debug                           | the failing spec path and the failure output (local run or CI run id)                                            |
+| Intent                          | Primary inputs                                                                                                                                     |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Page object, UI test, component | the page URL or route, the `{area}` folder (`ls pages/`), a reachable app for `playwright-cli`                                                     |
+| API test, schema                | the OpenAPI or Swagger location ([Explore Before Generate](../../../../AGENTS.md#rule-explore-before-generate)), the `{area}` folder (`ls tests/`) |
+| Factory, static data set        | the field list or the schema it feeds, the `{area}` folder (`ls test-data/`)                                                                       |
+| Env var, config property        | the variable name and its consumer                                                                                                                 |
+| Enum or static-value change     | the exact old and new value, and whether the backend change is live                                                                                |
+| Debug                           | the failing spec path and the failure output (local run or CI run id)                                                                              |
 
 ## Stop and ask
 

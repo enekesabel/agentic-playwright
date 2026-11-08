@@ -6,12 +6,7 @@ import { NavigationComponent } from '../components/navigation.component';
  * Page Object for the main application page.
  * Contains locators and methods for interacting with the application.
  *
- * This example demonstrates the recommended locator priority:
- * 1. getByRole() - Accessibility-based (most recommended)
- * 2. getByLabel() - Form labels
- * 3. getByPlaceholder() - Placeholder text
- * 4. getByText() - Text content
- * 5. getByTestId() - Test IDs (fallback when semantic locators aren't possible)
+ * Locators follow the Selectors priority in AGENTS.md#rule-selectors.
  *
  * This also demonstrates the component composition pattern where reusable
  * UI components (like NavigationComponent) are composed into page objects.

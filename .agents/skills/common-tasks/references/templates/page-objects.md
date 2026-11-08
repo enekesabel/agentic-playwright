@@ -1,13 +1,13 @@
 # Page object templates
 
-Prompt templates for page objects. `page-objects` and `selectors` own the rules; `playwright-cli` is the only exploration tool. Resolve `{area}` with `ls pages/` first.
+Prompt templates for page objects. `page-objects` and `selectors` own the rules; [No Substitute UI Exploration](../../../../../AGENTS.md#rule-no-substitute-ui-exploration). Resolve `{area}` with `ls pages/` first.
 
 ## Add a page object (with exploration)
 
 ```
 Create a page object for [PAGE NAME].
 
-Run `ls pages/` to find the real area folder, then explore [URL] with playwright-cli (goto, snapshot) to discover:
+Run `ls pages/` to find the real area folder, then follow [Explore Before Generate](../../../../../AGENTS.md#rule-explore-before-generate) for [URL] (goto, snapshot) to discover:
 - element roles, labels and accessible names
 - form fields and their validation messages
 - buttons and the actions they trigger
@@ -18,7 +18,7 @@ Generate pages/{area}/[name].page.ts from the snapshot and register it in fixtur
 
 ## Add a page object (exploration already done)
 
-Use only when the element structure comes from a `playwright-cli` snapshot taken in this session or supplied by a human; "I know what the page looks like" does not qualify.
+[Explore Before Generate](../../../../../AGENTS.md#rule-explore-before-generate), [No Substitute UI Exploration](../../../../../AGENTS.md#rule-no-substitute-ui-exploration): the snapshot must be taken in this session or supplied by a human; "I know what the page looks like" does not qualify.
 
 ```
 Create a page object for [PAGE NAME] from the attached playwright-cli snapshot:
@@ -47,5 +47,5 @@ Add an action method to [PAGE NAME]:
 - parameters: [list]
 - waits for: [API response or element state]
 
-Explicit return type and JSDoc with @param and @returns, per the page-objects skill.
+Explicit return type; follow [JSDoc on Actions](../../../../../AGENTS.md#rule-jsdoc-on-actions) and the page-objects skill.
 ```

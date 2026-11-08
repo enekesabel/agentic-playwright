@@ -47,7 +47,7 @@ Every non-trivial task runs through these 8 phases in order. Owned by `ai-native
 
 ### The Confidence Gate
 
-Phase 4's proposal **must** carry a 1-10 confidence — the number gates whether the plan may be emitted at all. The thresholds and their required actions live in **one canonical place**: `ai-native-workflow` → "Procedure", step 4. Read them there; this document links to them rather than restating them.
+[Confidence gate](.claude/skills/ai-native-workflow/SKILL.md#critical) governs whether Phase 4’s proposal may be emitted; the proposal format follows.
 
 **Proposal block format:**
 
@@ -86,18 +86,18 @@ Phase 4's proposal **must** carry a 1-10 confidence — the number gates whether
 | Step | Action                                                                                                                                                               | Skill · Phase                                      | Gate / Output                                                                             |
 | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | 1    | Classify → route to `api-testing`.                                                                                                                                   | `ai-native` · P1–P2                                | —                                                                                         |
-| 2    | **Source the contract.** OpenAPI / Swagger is the source of truth. No docs? ASK, or fall back to a live request and flag it.                                         | `api-testing` · step 1                             | No contract & can't obtain → **ASK** (below the [Confidence Gate](#the-confidence-gate)). |
+| 2    | [Explore Before Generate](AGENTS.md#rule-explore-before-generate).                                                                                                   | `api-testing` · step 1                             | No contract & can't obtain → **ASK** (below the [Confidence Gate](#the-confidence-gate)). |
 | 3    | **Build the coverage plan**: list every endpoint × method × status code from the spec; state the test for each. **Present before coding.**                           | `api-testing` · step 5                             | Human approves the plan.                                                                  |
-| 4    | Define one `z.strictObject()` schema per response; spell out the envelope; infer types. Repeated envelope (3+) → `_envelope.ts`.                                     | `api-testing` · step 2 · `type-safety` · steps 2–3 | Schemas mirror the documented contract 1:1.                                               |
-| 5    | Endpoint paths → `enums/{area}/*` (`ApiEndpoints.*`); URLs / tokens → `process.env.*`. Never hardcode.                                                               | `api-testing` · Critical · `enums`                 | —                                                                                         |
-| 6    | Happy-path payloads from Faker factories; negative inputs from the three tiers.                                                                                      | `data-strategy` · steps 2–3                        | —                                                                                         |
+| 4    | [Strict Schemas](AGENTS.md#rule-strict-schemas): spell out the envelope; infer types. Repeated envelope (3+) → `_envelope.ts`.                                       | `api-testing` · step 2 · `type-safety` · steps 2–3 | Schemas mirror the documented contract 1:1.                                               |
+| 5    | [Sources of Truth](AGENTS.md#rule-sources-of-truth) (`ApiEndpoints.*`).                                                                                              | `api-testing` · Critical · `enums`                 | —                                                                                         |
+| 6    | [Data Generation](AGENTS.md#rule-data-generation), [Data Strategy](AGENTS.md#rule-data-strategy): negative inputs use the three tiers.                               | `data-strategy` · steps 2–3                        | —                                                                                         |
 | 7    | Write tests with the **`apiRequest` fixture**; one `test.describe` per method + path; `beforeAll`/`afterAll` for shared resources.                                   | `api-testing` · step 4                             | —                                                                                         |
-| 8    | Each response: `expect(SchemaName.parse(body)).toBeTruthy();`. Multi-call tests → each call in its own `test.step`.                                                  | `api-testing` · Critical                           | —                                                                                         |
-| 9    | **Cover the full status matrix** per endpoint: 200/201, 400/422, 401, 403, 404, 405, 409, 204 — plus every code the spec lists.                                      | `api-testing` · step 5                             | Every status code has a test.                                                             |
-| 10   | **Per-field negative coverage**: empty body, each required field omitted, each field with invalid types (`for...of` over `INVALID_*`). Fuzz path params (mandatory). | `api-testing` · step 6                             | No empty-body-only 400s.                                                                  |
-| 11   | Behavior ≠ spec? Write the test as the spec says, `test.skip` it + `// FIXME: <ticket-url>`. **Never loosen the schema.**                                            | `api-testing` · Critical                           | No silent coverage drops.                                                                 |
+| 8    | [Response Validation](AGENTS.md#rule-response-validation), [API Test Steps](AGENTS.md#rule-api-test-steps).                                                          | `api-testing` · Critical                           | —                                                                                         |
+| 9    | **Cover the full status matrix** per endpoint: 200/201, 400/422, 401, 403, 404, 405, 409, 204 — plus every code the spec lists.                                      | `api-testing` · step 5                             | [No Silent Coverage Drops](AGENTS.md#rule-no-silent-coverage-drops).                      |
+| 10   | **Per-field negative coverage**: empty body, each required field omitted, each field with invalid types (`for...of` over `INVALID_*`). Fuzz path params (mandatory). | `api-testing` · step 6                             | [No Empty-Body-Only 400](AGENTS.md#rule-no-empty-body-only-400).                          |
+| 11   | [Explore Before Generate](AGENTS.md#rule-explore-before-generate): track the mismatch with a ticket URL.                                                             | `api-testing` · Critical                           | [No Silent Coverage Drops](AGENTS.md#rule-no-silent-coverage-drops).                      |
 | 12   | Same setup/teardown reused in 3+ files? Promote to a helper fixture — otherwise use `apiRequest` directly.                                                           | `api-testing` · Critical                           | —                                                                                         |
-| 13   | Tag every test `@api` (single tag).                                                                                                                                  | `test-standards` · step 3                          | —                                                                                         |
+| 13   | [No Multiple Tags](AGENTS.md#rule-no-multiple-tags): API tests use `@api`.                                                                                           | `test-standards` · step 3                          | —                                                                                         |
 | 14   | Run the suite; red → `debugging`. Then report + ask to commit.                                                                                                       | `ai-native` · P7–P8                                | Zero failures before "done".                                                              |
 
 ---
@@ -107,18 +107,18 @@ Phase 4's proposal **must** carry a 1-10 confidence — the number gates whether
 **Use when:** a ticket / acceptance criteria describes one feature's behaviours to verify in isolation.
 **Chain:** `test-standards` → `page-objects` · `selectors` · `playwright-cli` · `data-strategy`
 
-| Step | Action                                                                                                                                   | Skill · Phase                                  | Gate / Output                            |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------- |
-| 1    | Classify → route to `test-standards` (+ UI chain if new screens are involved).                                                           | `ai-native` · P1–P2                            | —                                        |
-| 2    | Split the ticket into discrete behaviours → **one functional test per behaviour**.                                                       | `test-standards` · step 1                      | —                                        |
-| 3    | Missing URL / area / unclear acceptance criteria? **ASK before planning.**                                                               | `ai-native` · P3                               | [Confidence Gate](#the-confidence-gate). |
-| 4    | New screen/elements? Explore the live app with **`playwright-cli`** (`goto`, `snapshot`). No substitutes.                                | `page-objects` · step 2 · `selectors` · step 3 | Exploration evidence captured.           |
-| 5    | Plan: list scenarios, the tag for each, and data needs. Present.                                                                         | `ai-native` · P4–P5                            | Human approves.                          |
-| 6    | Create/extend the page object: semantic locators (`getByRole` > `getByLabel` > …), **including success / error / validation selectors**. | `page-objects` · step 4–6 · `selectors`        | No feedback-less POM.                    |
-| 7    | Content values from Faker factories; curated invalid sets from static `.ts`.                                                             | `data-strategy` · steps 2–3                    | No hardcoded test content.               |
-| 8    | Write the spec: import from `test-options.ts`; `describe` + `beforeEach`; `test.step` (Given/When/Then).                                 | `test-standards` · step 2, 4                   | —                                        |
-| 9    | One tag per test: `@smoke` \| `@sanity` \| `@regression`. Web-first assertions only.                                                     | `test-standards` · step 3, Critical            | No `waitForTimeout`.                     |
-| 10   | Run the affected file; red → `debugging`. Report + ask to commit.                                                                        | `test-standards` · step 7                      | Zero failures.                           |
+| Step | Action                                                                                                                                                               | Skill · Phase                                  | Gate / Output                                                          |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------------- |
+| 1    | Classify → route to `test-standards` (+ UI chain if new screens are involved).                                                                                       | `ai-native` · P1–P2                            | —                                                                      |
+| 2    | Split the ticket into discrete behaviours → **one functional test per behaviour**.                                                                                   | `test-standards` · step 1                      | —                                                                      |
+| 3    | Missing URL / area / unclear acceptance criteria? **ASK before planning.**                                                                                           | `ai-native` · P3                               | [Confidence Gate](#the-confidence-gate).                               |
+| 4    | [Explore Before Generate](AGENTS.md#rule-explore-before-generate), [No Substitute UI Exploration](AGENTS.md#rule-no-substitute-ui-exploration) (`goto`, `snapshot`). | `page-objects` · step 2 · `selectors` · step 3 | Exploration evidence captured.                                         |
+| 5    | Plan: list scenarios, the tag for each, and data needs. Present.                                                                                                     | `ai-native` · P4–P5                            | Human approves.                                                        |
+| 6    | Create/extend the page object: [Selectors](AGENTS.md#rule-selectors), [No Feedback-Less POM](AGENTS.md#rule-no-feedback-less-pom).                                   | `page-objects` · step 4–6 · `selectors`        | [No Feedback-Less POM](AGENTS.md#rule-no-feedback-less-pom).           |
+| 7    | [Data Strategy](AGENTS.md#rule-data-strategy), [No Hardcoded Test Content](AGENTS.md#rule-no-hardcoded-test-content).                                                | `data-strategy` · steps 2–3                    | [No Hardcoded Test Content](AGENTS.md#rule-no-hardcoded-test-content). |
+| 8    | Write the spec: [Imports](AGENTS.md#rule-imports), [Test Isolation](AGENTS.md#rule-test-isolation), [Test Steps](AGENTS.md#rule-test-steps); group with `describe`.  | `test-standards` · step 2, 4                   | —                                                                      |
+| 9    | [No Multiple Tags](AGENTS.md#rule-no-multiple-tags), [Assertions](AGENTS.md#rule-assertions): choose the importance tag.                                             | `test-standards` · step 3, Critical            | [No Hard Waits](AGENTS.md#rule-no-hard-waits).                         |
+| 10   | Run the affected file; red → `debugging`. Report + ask to commit.                                                                                                    | `test-standards` · step 7                      | Zero failures.                                                         |
 
 ---
 
@@ -173,14 +173,14 @@ Phase 4's proposal **must** carry a 1-10 confidence — the number gates whether
 **Use when:** a new screen needs a page object, or an existing one needs locators/actions.
 **Chain:** `page-objects` → `selectors` · `playwright-cli` · `enums` · `fixtures`
 
-| Step | Action                                                                                                                                                                                                                | Skill · Phase                                  |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| 1    | Verify prerequisites; `ls pages/` to resolve `{area}`.                                                                                                                                                                | `page-objects` · step 1                        |
-| 2    | **Explore the live app with `playwright-cli`** (`goto`, `snapshot`). No IDE browser / codegen / substitutes — if the CLI can't run, **stop and tell the human**.                                                      | `page-objects` · step 2 · `selectors` · step 3 |
-| 3    | Plan the page's test coverage (which elements, which actions, feedback messages).                                                                                                                                     | `selectors` · step 4                           |
-| 4    | Build the class: get-accessor locators by priority (`getByRole` > `getByLabel` > `getByPlaceholder` > `getByText` > `getByTestId`); **JSDoc on action methods only**; include success / error / validation selectors. | `page-objects` · step 4 · `selectors`          |
-| 5    | Register the page object in `fixtures/pom/page-object-fixture.ts`.                                                                                                                                                    | `page-objects` · step 6 · `fixtures`           |
-| 6    | Consume from tests via the fixture (`async ({ appPage }) => …`) — never `new PageObject(page)`.                                                                                                                       | `fixtures` · Critical                          |
+| Step | Action                                                                                                                                                                                               | Skill · Phase                                  |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| 1    | Verify prerequisites; `ls pages/` to resolve `{area}`.                                                                                                                                               | `page-objects` · step 1                        |
+| 2    | [Explore Before Generate](AGENTS.md#rule-explore-before-generate), [No Substitute UI Exploration](AGENTS.md#rule-no-substitute-ui-exploration) (`goto`, `snapshot`).                                 | `page-objects` · step 2 · `selectors` · step 3 |
+| 3    | Plan the page's test coverage (which elements, which actions, feedback messages).                                                                                                                    | `selectors` · step 4                           |
+| 4    | Build the class with get-accessor locators: [Selectors](AGENTS.md#rule-selectors), [JSDoc on Actions](AGENTS.md#rule-jsdoc-on-actions), [No Feedback-Less POM](AGENTS.md#rule-no-feedback-less-pom). | `page-objects` · step 4 · `selectors`          |
+| 5    | Register the page object in `fixtures/pom/page-object-fixture.ts`.                                                                                                                                   | `page-objects` · step 6 · `fixtures`           |
+| 6    | [Dependency Injection](AGENTS.md#rule-dependency-injection), [No Manual Instantiation](AGENTS.md#rule-no-manual-instantiation) (`async ({ appPage }) => …`).                                         | `fixtures` · Critical                          |
 
 ---
 
@@ -189,14 +189,14 @@ Phase 4's proposal **must** carry a 1-10 confidence — the number gates whether
 **Use when:** an endpoint needs a typed, validated response/request schema.
 **Chain:** `api-testing` (step 2) → `type-safety`
 
-| Step | Action                                                                                                                                                         | Skill · Phase                                     |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| 1    | Source from OpenAPI / Swagger (default). No docs → capture live shape as a fallback and flag it.                                                               | `api-testing` · step 1                            |
-| 2    | `ls fixtures/api/schemas/` to resolve `{area}`.                                                                                                                | `type-safety` · step 1                            |
-| 3    | Build with **`z.strictObject()`** (never `z.object()`); top-level validators (`z.uuid()`, `z.email()`, `z.int()`, …); spell out the envelope per the contract. | `type-safety` · step 2                            |
-| 4    | Export the schema **and** the inferred type (`zOutput`). Reuse `util/errorResponseSchema.ts` for 401/403/404/422.                                              | `type-safety` · step 3                            |
-| 5    | Validate at runtime in the test with `expect(SchemaName.parse(body)).toBeTruthy();`.                                                                           | `type-safety` · step 4 · `api-testing` · Critical |
-| 6    | Runtime disagrees later? That's a **bug** → `test.skip` + `// FIXME`. Never loosen the schema.                                                                 | `api-testing` · Critical                          |
+| Step | Action                                                                                                                                                                                                       | Skill · Phase                                     |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- |
+| 1    | [Explore Before Generate](AGENTS.md#rule-explore-before-generate).                                                                                                                                           | `api-testing` · step 1                            |
+| 2    | `ls fixtures/api/schemas/` to resolve `{area}`.                                                                                                                                                              | `type-safety` · step 1                            |
+| 3    | [Strict Schemas](AGENTS.md#rule-strict-schemas), [No Loose Schemas](AGENTS.md#rule-no-loose-schemas): top-level validators (`z.uuid()`, `z.email()`, `z.int()`, …); spell out the envelope per the contract. | `type-safety` · step 2                            |
+| 4    | Export the schema **and** the inferred type (`zOutput`). Reuse `util/errorResponseSchema.ts` for 401/403/404/422.                                                                                            | `type-safety` · step 3                            |
+| 5    | [Response Validation](AGENTS.md#rule-response-validation).                                                                                                                                                   | `type-safety` · step 4 · `api-testing` · Critical |
+| 6    | [Explore Before Generate](AGENTS.md#rule-explore-before-generate): a runtime disagreement is a bug.                                                                                                          | `api-testing` · Critical                          |
 
 ---
 
@@ -210,7 +210,7 @@ Phase 4's proposal **must** carry a 1-10 confidence — the number gates whether
 | 1    | Classify the value: dynamic happy-path → **factory**; reusable invalid set → **static**; one-off boundary → **inline**.                                                                                         | `data-strategy` · step 1   |
 | 2    | Factory: `test-data/factories/{area}/[name].factory.ts` — Faker + Zod-validated output, `overrides`.                                                                                                            | `data-strategy` · step 2   |
 | 3    | Static (the three-tier rule): universal type-mismatch → `test-data/static/util/invalid-values.ts` (import, never redefine); domain-specific → `test-data/static/{area}/*.ts`; field-specific boundary → inline. | `data-strategy` · step 3   |
-| 4    | Static files are **`.ts` with `as const`** exports only — never `.json`, no logic.                                                                                                                              | `data-strategy` · Critical |
+| 4    | [No JSON Static Data](AGENTS.md#rule-no-json-static-data): no logic.                                                                                                                                            | `data-strategy` · Critical |
 | 5    | Consume: factories for payloads/content; static via named imports in `for...of` loops.                                                                                                                          | `data-strategy` · step 4   |
 
 ---
@@ -254,7 +254,7 @@ Phase 4's proposal **must** carry a 1-10 confidence — the number gates whether
 | 1    | Confirm the value is app-defined & repeated (belongs in an enum, not `config`/static data).  | `enums` · step 1   |
 | 2    | Pick the home: app-specific → `enums/{area}/*`; shared → `enums/util/*`. New file vs extend. | `enums` · step 2   |
 | 3    | Name it: `PascalCase` enum, `SCREAMING_SNAKE_CASE` members.                                  | `enums` · Critical |
-| 4    | **Verify message strings against the real app** with `playwright-cli` — never guess UI text. | `enums` · step 3   |
+| 4    | [Explore Before Generate](AGENTS.md#rule-explore-before-generate) for message strings.       | `enums` · step 3   |
 | 5    | Add JSDoc + export; consume via the enum everywhere (no hardcoded duplicates).               | `enums` · step 4   |
 
 ---
@@ -264,13 +264,13 @@ Phase 4's proposal **must** carry a 1-10 confidence — the number gates whether
 **Use when:** a test/fixture needs a new URL, credential, or environment-driven setting.
 **Chain:** `config` → `enums` · `type-safety`
 
-| Step | Action                                                                                           | Skill · Phase                                |
-| ---- | ------------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| 1    | Understand env loading (`ENVIRONMENT` → `env/.env.*` via `playwright.config.ts`).                | `config` · Critical                          |
-| 2    | Decide where it belongs: URL/credential/env-setting → `config`; endpoint path/message → `enums`. | `config` · step 1                            |
-| 3    | Declare it in `env/.env.example` (and the real env file).                                        | `config` · step 2                            |
-| 4    | Add a config property with JSDoc **only if warranted**; otherwise read `process.env.*` directly. | `config` · step 3                            |
-| 5    | Consume via `process.env.*` (`!` non-null or `??` fallback per `type-safety`) — never hardcode.  | `config` · step 4 · `type-safety` · Critical |
+| Step | Action                                                                                                 | Skill · Phase                                |
+| ---- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| 1    | Understand env loading (`ENVIRONMENT` → `env/.env.*` via `playwright.config.ts`).                      | `config` · Critical                          |
+| 2    | Decide where it belongs: URL/credential/env-setting → `config`; endpoint path/message → `enums`.       | `config` · step 1                            |
+| 3    | Declare it in `env/.env.example` (and the real env file).                                              | `config` · step 2                            |
+| 4    | Add a config property with JSDoc **only if warranted**; otherwise read `process.env.*` directly.       | `config` · step 3                            |
+| 5    | [Sources of Truth](AGENTS.md#rule-sources-of-truth) (`!` non-null or `??` fallback per `type-safety`). | `config` · step 4 · `type-safety` · Critical |
 
 ---
 
@@ -279,55 +279,55 @@ Phase 4's proposal **must** carry a 1-10 confidence — the number gates whether
 **Use when:** a reusable plain function (no fixture lifecycle), or a composable UI component.
 **Chain:** `helpers` / `page-objects` · `selectors`
 
-| Step | Action                                                                                                      | Skill · Phase                |
-| ---- | ----------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| 1    | **Helper**: no Playwright fixture lifecycle needed → `helpers/{area}/` (app) or `helpers/util/` (generic).  | `helpers` · steps 1–2        |
-| 2    | Define typed signature + JSDoc; read env via `process.env.*`; if it makes API calls, validate with Zod.     | `helpers` · step 3           |
-| 3    | **Component**: `pages/components/[name].component.ts`, semantic locators, composable into page objects.     | `page-objects` · `selectors` |
-| 4    | Need the fixture lifecycle (setup/teardown) instead? Use a **helper fixture** (Flow 8), not a plain helper. | `fixtures` · step 3          |
+| Step | Action                                                                                                                         | Skill · Phase                |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------- |
+| 1    | **Helper**: no Playwright fixture lifecycle needed → `helpers/{area}/` (app) or `helpers/util/` (generic).                     | `helpers` · steps 1–2        |
+| 2    | Define typed signature + JSDoc; [Sources of Truth](AGENTS.md#rule-sources-of-truth); if it makes API calls, validate with Zod. | `helpers` · step 3           |
+| 3    | **Component**: `pages/components/[name].component.ts`, semantic locators, composable into page objects.                        | `page-objects` · `selectors` |
+| 4    | Need the fixture lifecycle (setup/teardown) instead? Use a **helper fixture** (Flow 8), not a plain helper.                    | `fixtures` · step 3          |
 
 ---
 
 ## Anti-Drift Guardrails
 
-The rules most often skipped under time pressure — and the one that catches each. These are hard stops (`AGENTS.md` Constitution).
+The rules most often skipped under time pressure — and the one that catches each. These are hard stops ([AGENTS.md](AGENTS.md) Constitution).
 
-| Drift you might make                                                      | The rule that prevents it                                                                                                   |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Guessing a selector / UI text / folder / enum value                       | **Explore first** (`playwright-cli` for UI, OpenAPI for API) or **ASK**. Never invent.                                      |
-| Emitting a plan you're not sure of                                        | The **confidence gate** — thresholds canonical in `ai-native-workflow` step 4.                                              |
-| `curl` the API then write a schema that matches reality                   | Schemas come from the **documented contract**; runtime mismatch is a **bug**, not a fix.                                    |
-| Loosening a schema to make a test pass                                    | `test.skip` + `// FIXME: <ticket-url>`. Never weaken the contract.                                                          |
-| `z.object()` for an API schema                                            | Always **`z.strictObject()`** — catches unexpected fields.                                                                  |
-| Skipping `expect(Schema.parse(body)).toBeTruthy()`                        | Mandatory for every API response — type generics alone are insufficient.                                                    |
-| Empty-body-only 400 test                                                  | Per-field omission **and** per-field invalid-type loops are required.                                                       |
-| Two tags / `@functional` / tag on `describe`                              | **Exactly one** tag per test; `@destructive` wins — shared/global state only.                                               |
-| `@destructive` for isolated own-data test                                 | Reserve `@destructive` for shared/global state (locale, permissions, roles, flags); isolated CRUD keeps its importance tag. |
-| Any state-mutating test with no cleanup                                   | Required `afterEach`/`afterAll` that reverts state — destructive **and** isolated.                                          |
-| `page.waitForTimeout(...)` / XPath / `any`                                | Web-first assertions only; semantic locators only; typed only.                                                              |
-| `new PageObject(page)` in a test                                          | Consume via the fixture (`async ({ appPage }) => …`).                                                                       |
-| Hardcoded URL / token / endpoint                                          | `process.env.*` for URLs & credentials; `enums/{area}/*` for paths & messages.                                              |
-| `.json` static data                                                       | Static data is **`.ts` with `as const`** only.                                                                              |
-| Marking a task done with failing tests                                    | Run the affected tests; green before "done"; red → `debugging`.                                                             |
-| Suppressing a failure (try/catch on `expect`, raise timeout, silent skip) | Fix the **root cause**; `debugging` flow.                                                                                   |
+| Drift you might make                                                      | The rule that prevents it                                                                                                                                                      |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Guessing a selector / UI text / folder / enum value                       | [Explore Before Generate](AGENTS.md#rule-explore-before-generate); for folder and enum discovery see [Ask, don’t invent](.claude/skills/ai-native-workflow/SKILL.md#critical). |
+| Emitting a plan you're not sure of                                        | [Confidence gate](.claude/skills/ai-native-workflow/SKILL.md#critical).                                                                                                        |
+| `curl` the API then write a schema that matches reality                   | [Explore Before Generate](AGENTS.md#rule-explore-before-generate): a runtime mismatch is a bug.                                                                                |
+| Loosening a schema to make a test pass                                    | [Explore Before Generate](AGENTS.md#rule-explore-before-generate): track the mismatch with a ticket URL.                                                                       |
+| `z.object()` for an API schema                                            | [Strict Schemas](AGENTS.md#rule-strict-schemas) catches unexpected fields.                                                                                                     |
+| Skipping `expect(Schema.parse(body)).toBeTruthy()`                        | [Response Validation](AGENTS.md#rule-response-validation): type generics alone are insufficient.                                                                               |
+| Empty-body-only 400 test                                                  | [No Empty-Body-Only 400](AGENTS.md#rule-no-empty-body-only-400).                                                                                                               |
+| Two tags / `@functional` / tag on `describe`                              | [No Multiple Tags](AGENTS.md#rule-no-multiple-tags), [No Tags on Describe](AGENTS.md#rule-no-tags-on-describe).                                                                |
+| `@destructive` for isolated own-data test                                 | [No Multiple Tags](AGENTS.md#rule-no-multiple-tags): isolated CRUD keeps its importance tag.                                                                                   |
+| Any state-mutating test with no cleanup                                   | [State Cleanup](AGENTS.md#rule-state-cleanup): destructive and isolated.                                                                                                       |
+| `page.waitForTimeout(...)` / XPath / `any`                                | [Assertions](AGENTS.md#rule-assertions), [Selectors](AGENTS.md#rule-selectors), [No XPath](AGENTS.md#rule-no-xpath), [No `any`](AGENTS.md#rule-no-any).                        |
+| `new PageObject(page)` in a test                                          | [No Manual Instantiation](AGENTS.md#rule-no-manual-instantiation) (`async ({ appPage }) => …`).                                                                                |
+| Hardcoded URL / token / endpoint                                          | [Sources of Truth](AGENTS.md#rule-sources-of-truth).                                                                                                                           |
+| `.json` static data                                                       | [No JSON Static Data](AGENTS.md#rule-no-json-static-data).                                                                                                                     |
+| Marking a task done with failing tests                                    | [Test Verification](AGENTS.md#rule-test-verification); red → `debugging`.                                                                                                      |
+| Suppressing a failure (try/catch on `expect`, raise timeout, silent skip) | Fix the **root cause**; `debugging` flow.                                                                                                                                      |
 
 ---
 
 ## Command Cheat-Sheet
 
-| Command                                                            | Purpose                                    |
-| ------------------------------------------------------------------ | ------------------------------------------ |
-| `npm test`                                                         | All non-destructive tests (parallel).      |
-| `npm run test:smoke` / `:sanity` / `:regression` / `:api` / `:e2e` | Run one tag.                               |
-| `npm run test:destructive`                                         | Destructive suite only (`--workers=1`).    |
-| `npx playwright test <file>`                                       | Run a single spec.                         |
-| `npm run test:ui`                                                  | UI Mode — time-travel debugging.           |
-| `npm run test:debug`                                               | Inspector — step through a test.           |
-| `npm run test:headed`                                              | Watch the browser run.                     |
-| `npm run report`                                                   | Open the HTML report / Trace Viewer.       |
-| `CI=1 npx playwright test <file> --workers=1 --retries=0`          | Replay CI conditions locally.              |
-| `npm run lint` / `lint:fix` / `format`                             | ESLint / autofix / Prettier.               |
-| `npm run check:skills`                                             | Validate the AI rules layer (eight gates). |
+| Command                                                            | Purpose                                   |
+| ------------------------------------------------------------------ | ----------------------------------------- |
+| `npm test`                                                         | All non-destructive tests (parallel).     |
+| `npm run test:smoke` / `:sanity` / `:regression` / `:api` / `:e2e` | Run one tag.                              |
+| `npm run test:destructive`                                         | Destructive suite only (`--workers=1`).   |
+| `npx playwright test <file>`                                       | Run a single spec.                        |
+| `npm run test:ui`                                                  | UI Mode — time-travel debugging.          |
+| `npm run test:debug`                                               | Inspector — step through a test.          |
+| `npm run test:headed`                                              | Watch the browser run.                    |
+| `npm run report`                                                   | Open the HTML report / Trace Viewer.      |
+| `CI=1 npx playwright test <file> --workers=1 --retries=0`          | Replay CI conditions locally.             |
+| `npm run lint` / `lint:fix` / `format`                             | ESLint / autofix / Prettier.              |
+| `npm run check:skills`                                             | Validate the AI rules layer (nine gates). |
 
 ---
 

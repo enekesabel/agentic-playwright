@@ -1,6 +1,6 @@
 # Feedback selectors
 
-A page object that submits a form or runs a CRUD action carries a locator for each outcome the app renders, so a test can assert the result instead of the absence of an error.
+[No Feedback-Less POM](../../../../AGENTS.md#rule-no-feedback-less-pom): a page object that submits a form or runs a CRUD action carries a locator for each outcome the app renders, so a test can assert the result instead of the absence of an error.
 
 | Feedback type         | When it appears                             | Locator                                                                        |
 | --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |

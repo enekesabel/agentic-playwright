@@ -1,232 +1,149 @@
 #!/usr/bin/env bash
-# check-rules-drift.sh
+# check-rules-drift.sh [root-dir]
 #
-# Verifies every Constitution rule (AGENTS.md MUST/SHOULD/WON'T lists) has a
-# matching anchor token inside the Critical block of its owning leaf skill.
-# Exits non-zero on drift so it can gate CI.
-#
-# Manifest format (one rule per line):
-#   <anchor-token>|<owning-skill-dir>|<short-label>
-#
-# The anchor token must be a distinctive substring of the rule that the leaf
-# skill's Critical block is expected to contain verbatim. Keep tokens short
-# and unique enough that a stylistic rewrite of the Critical block still
-# triggers a deliberate manifest update.
-
+# Checks that every Constitution row has a rule anchor and is linked from
+# at least one non-vendored scaffold skill's Critical block. Reports owners
+# per row and rejects Critical-block links to missing Constitution rows.
+# Failure modes: missing/duplicate row anchor; uncovered row; broken row link.
+# Uses .agents/skills when .claude/skills was pruned at init (--no-claude).
+# Exit codes: 0 clean (explicit coverage exceptions reported), 1 drift,
+# 2 missing required input. Bash and Python standard library only.
 set -euo pipefail
+ROOT="$(cd "${1:-$(dirname "${BASH_SOURCE[0]}")/..}" && pwd -P)"
+python3 - "${ROOT}" <<'PY'
+import ast
+import warnings
+import json
+import re
+import sys
+from pathlib import Path
+from urllib.parse import unquote
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SKILLS_DIR="${REPO_ROOT}/.claude/skills"
-# Claude tree pruned at init (--no-claude): lint the generated copy instead.
-[[ -d "${SKILLS_DIR}" ]] || SKILLS_DIR="${REPO_ROOT}/.agents/skills"
-CONSTITUTION="${REPO_ROOT}/AGENTS.md"
-
-if [[ ! -f "${CONSTITUTION}" ]]; then
-    if [[ ! -d "${REPO_ROOT}/.claude" ]]; then
-        echo "SKIP: Claude rule tree not present (pruned at init) — nothing to check."
-        exit 0
-    fi
-    echo "ERROR: Constitution not found at ${CONSTITUTION}" >&2
-    exit 2
-fi
-
-# anchor-token|owning-skill|label
-MANIFEST="${REPO_ROOT}/scripts/rules-manifest.txt"
-if [[ ! -f "${MANIFEST}" ]]; then
-    echo "ERROR: shared manifest not found at ${MANIFEST}" >&2
-    exit 2
-fi
-RULES="$(grep -v '^\s*#' "${MANIFEST}" | grep -v '^\s*$')"
-
-extract_critical_block() {
-    # Print the Critical block of a SKILL.md: lines from "## Critical" (or
-    # "## Mandatory" — playwright-cli uses that name) up to the next
-    # top-level "## " heading.
-    local file="$1"
-    awk '
-        /^## (Critical|Mandatory)/ { in_block = 1; next }
-        in_block && /^## / { in_block = 0 }
-        in_block { print }
-    ' "${file}"
+# Visible coverage gaps from the conversion; remove exceptions when owned.
+ALLOW_UNLINKED = {
+    'rule-type-safety': 'Type Safety is not linked in any converted Critical block.',
+    'rule-test-steps': 'Test Steps is linked in procedures, not a Critical block.',
 }
 
-errors=0
-checked=0
-
-while IFS='|' read -r token skill label; do
-    [[ -z "${token}" ]] && continue
-    skill_file="${SKILLS_DIR}/${skill}/SKILL.md"
-    if [[ ! -f "${skill_file}" ]]; then
-        echo "MISS  ${skill}/SKILL.md not found (rule: ${label})"
-        errors=$((errors + 1))
+root = Path(sys.argv[1])
+constitution = root / 'AGENTS.md'
+skills = root / '.claude/skills'
+if not skills.is_dir():
+    skills = root / '.agents/skills'
+if not constitution.is_file() or not skills.is_dir():
+    print('ERROR: AGENTS.md and a scaffold skills tree are required.')
+    sys.exit(2)
+lock = root / 'skills-lock.json'
+vendored = set(json.loads(lock.read_text()).get('skills', {})) if lock.exists() else set()
+section = re.search(r'^## Constitution\s*\n(.*?)(?=^## |\Z)', constitution.read_text(), re.M | re.S)
+if not section:
+    print('ERROR: AGENTS.md Constitution section missing.')
+    sys.exit(2)
+rows = {}
+errors = []
+for line in section[1].splitlines():
+    match = re.match(r'^- \*\*([^*]+)\*\*(.*)', line)
+    if not match:
         continue
-    fi
-    block="$(extract_critical_block "${skill_file}")"
-    if printf '%s' "${block}" | grep -F -q -- "${token}"; then
-        echo "OK    ${skill} :: ${label}"
-    else
-        echo "DRIFT ${skill} :: ${label} -- token '${token}' not found in Critical block"
-        errors=$((errors + 1))
-    fi
-    checked=$((checked + 1))
-done <<< "${RULES}"
+    name, tail = match.groups()
+    anchor = re.match(r'<a id="(rule-[a-z0-9-]+)"></a>', tail)
+    if not anchor or anchor[1] in rows:
+        errors.append(f'AGENTS.md :: missing or duplicate row anchor: {name}')
+    else:
+        rows[anchor[1]] = name
+if not rows:
+    errors.append('AGENTS.md :: no anchored Constitution rows found')
+# The row annotation above each hook rule id is the mapping; no side table.
+ANNOTATION = re.compile(r'^# (AGENTS\.md#rule-[a-z0-9-]+(?:, AGENTS\.md#rule-[a-z0-9-]+)*)$')
+hook = root / '.claude/scripts/enforce_constitution.py'
+if not hook.is_file():
+    if (root / '.claude').is_dir():
+        errors.append('hook :: enforce_constitution.py not found')
+else:
+    source = hook.read_text()
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', SyntaxWarning)
+        tree = ast.parse(source)
+    tables = [node.value for node in tree.body if isinstance(node, ast.Assign)
+              and any(isinstance(t, ast.Name) and t.id == 'RULES' for t in node.targets)]
+    ids = set()
+    for table in tables:
+        for item in table.elts:
+            hid = ast.literal_eval(item.elts[0])
+            ids.add(hid)
+            # The row annotation belongs immediately before this tuple's id.
+            annotation = source.splitlines()[item.elts[0].lineno - 2].strip()
+            if '# hook-rule-id' not in source.splitlines()[item.elts[0].lineno - 1]:
+                errors.append(f'hook :: {hid} missing hook-rule-id marker')
+            found = ANNOTATION.match(annotation)
+            if not found:
+                errors.append(f'hook :: {hid} has no matching Constitution annotation')
+            elif any(token.split('#')[1] not in rows for token in found[1].split(', ')):
+                errors.append(f'hook :: {hid} annotation targets a missing row')
+    if not tables:
+        errors.append('hook :: RULES table missing')
+    # Special gates are outside RULES. protected-path protects infrastructure
+    # and has no Constitution row; exploration carries its own annotation.
+    for hid in ('protected-path', 'explore-before-generate'):
+        if f'[{hid}]' not in source:
+            errors.append(f'hook :: special gate {hid} missing')
+    annotation = '# AGENTS.md#rule-explore-before-generate, AGENTS.md#rule-no-substitute-ui-exploration'
+    if annotation not in source or any(a not in rows for a in ('rule-explore-before-generate', 'rule-no-substitute-ui-exploration')):
+        errors.append('hook :: explore-before-generate annotation missing or broken')
+owners = {anchor: set() for anchor in rows}
+link_pattern = re.compile(r'\[(?:\\.|[^\]\\])*\]\(\s*(<[^>\n]+>|[^\s()]+)(?:\s+[\'\"][^\n]*?[\'\"])?\s*\)')
+def rendered(text):
+    return re.sub(r'[`*_]', '', text).strip()
 
-# ---------------------------------------------------------------------------
-# Bidirectional check: the manifest above only proves the SKILLS carry the
-# rules — it never reads the Constitution itself, so a deleted or renamed
-# AGENTS.md row would stay green. Assert the Constitution's MUST/SHOULD/WON'T
-# row keys match this expected list exactly, both directions:
-#   - a key listed here but missing from AGENTS.md  -> a rule was deleted/renamed
-#   - a key in AGENTS.md but not listed here        -> a rule was added without
-#     updating this manifest (and probably without a skill anchor or hook rule)
-# ---------------------------------------------------------------------------
-read -r -d '' EXPECTED_ROWS <<'EOF' || true
-Dependency Injection
-Imports
-Selectors
-Type Safety
-Strict Schemas
-Response Validation
-Sources of Truth
-Assertions
-Linting
-Data Strategy
-State Cleanup
-API Test Steps
-Test Verification
-Explore Before Generate
-Data Generation
-Test Isolation
-Test Steps
-JSDoc on Actions
-Enums for Strings
-No XPath
-No Hard Waits
-No Secrets
-No `any`
-No Tags on Describe
-No Multiple Tags
-No Magic Numbers
-No Manual Instantiation
-No Loose Schemas
-No JSDoc on Locators
-No Hardcoded Test Content
-No Explore-Only Files
-No Empty-Body-Only 400
-No Feedback-Less POM
-No Substitute UI Exploration
-No Silent Coverage Drops
-No JSON Static Data
-EOF
 
-ACTUAL_ROWS="$(awk '/^## Constitution/ { in_sec = 1; next }
-                   in_sec && /^## /    { in_sec = 0 }
-                   in_sec              { print }' "${CONSTITUTION}" \
-    | grep -oE '^- \*\*[^*]+\*\*' | sed 's/^- \*\*//; s/\*\*$//')"
-
-while IFS= read -r row; do
-    [[ -z "${row}" ]] && continue
-    if grep -F -x -q -- "${row}" <<< "${ACTUAL_ROWS}"; then
-        checked=$((checked + 1))
-    else
-        echo "DRIFT AGENTS.md :: Constitution row '${row}' missing (deleted or renamed?)"
-        errors=$((errors + 1))
-    fi
-done <<< "${EXPECTED_ROWS}"
-
-while IFS= read -r row; do
-    [[ -z "${row}" ]] && continue
-    if ! grep -F -x -q -- "${row}" <<< "${EXPECTED_ROWS}"; then
-        echo "DRIFT AGENTS.md :: new Constitution row '${row}' not in this manifest -- add it here (+ skill anchor / hook rule if mechanical)"
-        errors=$((errors + 1))
-    fi
-done <<< "${ACTUAL_ROWS}"
-
-# ---------------------------------------------------------------------------
-# Hook mapping: every mechanical rule id in enforce_constitution.py must map
-# to a Constitution row that still exists. A new hook rule without a mapping
-# here, or a mapped row that vanished from AGENTS.md, is drift.
-# ---------------------------------------------------------------------------
-ENFORCER="${REPO_ROOT}/.claude/scripts/enforce_constitution.py"
-# `_infra` sentinel: the rule protects the enforcement layer itself and has
-# no Constitution row by design — the row check is skipped for it.
-read -r -d '' HOOK_MAP <<'EOF' || true
-no-playwright-test-import|Imports
-no-hard-wait|No Hard Waits
-no-loose-schema|No Loose Schemas
-no-xpath|No XPath
-no-json-static-data|No JSON Static Data
-no-functional-tag|No Multiple Tags
-no-multiple-tags|No Multiple Tags
-no-tags-on-describe|No Tags on Describe
-no-manual-instantiation|No Manual Instantiation
-no-runtime-code-in-static-data|Data Strategy
-no-hardcoded-url|Sources of Truth
-no-hardcoded-goto-url|Sources of Truth
-no-unknown-tag|No Multiple Tags
-no-jsdoc-on-locators|No JSDoc on Locators
-no-hardcoded-test-content|No Hardcoded Test Content
-no-inline-universal-invalids|Data Strategy
-no-missing-tag|No Multiple Tags
-no-eslint-disable-scaffold|Linting
-explore-before-generate|Explore Before Generate
-protected-path|_infra
-EOF
-
-if [[ ! -f "${ENFORCER}" && ! -d "${REPO_ROOT}/.claude" ]]; then
-    echo "SKIP hook :: .claude/ pruned at init — no hook to map."
-elif [[ ! -f "${ENFORCER}" ]]; then
-    echo "DRIFT hook :: enforce_constitution.py not found"
-    errors=$((errors + 1))
-else
-    # Rule ids carry a `# hook-rule-id` marker on their tuple line (any id
-    # shape, not just `no-*`); gate ids appear as bracket tags in violation
-    # messages.
-    # `|| true`: under set -e + pipefail an empty grep would abort the script
-    # mute; an empty id set already produces explicit DRIFT messages below.
-    HOOK_IDS="$(
-        {
-            grep -E '",\s*#\s*hook-rule-id' "${ENFORCER}" | grep -oE '"[a-z0-9-]+"' | tr -d '"'
-            grep -oE '\[explore-before-generate\]|\[protected-path\]' "${ENFORCER}" | tr -d '[]'
-        } | sort -u || true
-    )"
-    # A rule tuple WITHOUT a marker would be invisible to the map — cross-check
-    # the tuple count (one `lambda p:` path predicate per tuple) against the
-    # marker count.
-    TUPLE_COUNT="$(awk '/^RULES = \[/{f=1} f{print} /^\]/{if(f) exit}' "${ENFORCER}" \
-        | { grep -c 'lambda p:' || true; })"
-    MARKER_COUNT="$(grep -cE '",\s*#\s*hook-rule-id' "${ENFORCER}" || true)"
-    if [[ "${TUPLE_COUNT}" -ne "${MARKER_COUNT}" ]]; then
-        echo "DRIFT hook :: ${TUPLE_COUNT} rule tuple(s) but ${MARKER_COUNT} '# hook-rule-id' marker(s) — a rule was added without a marker (invisible to this gate)"
-        errors=$((errors + 1))
-    else
-        checked=$((checked + 1))
-    fi
-    while IFS= read -r hid; do
-        [[ -z "${hid}" ]] && continue
-        mapped_row="$(awk -F'|' -v h="${hid}" '$1 == h { print $2 }' <<< "${HOOK_MAP}")"
-        if [[ -z "${mapped_row}" ]]; then
-            echo "DRIFT hook :: rule id '${hid}' has no Constitution mapping in this manifest"
-            errors=$((errors + 1))
-        elif [[ "${mapped_row}" == "_infra" ]]; then
-            checked=$((checked + 1))
-        elif ! grep -F -x -q -- "${mapped_row}" <<< "${ACTUAL_ROWS}"; then
-            echo "DRIFT hook :: '${hid}' maps to Constitution row '${mapped_row}' which no longer exists"
-            errors=$((errors + 1))
-        else
-            checked=$((checked + 1))
-        fi
-    done <<< "${HOOK_IDS}"
-    # Inverse: every manifest entry must still exist as a hook rule id.
-    while IFS='|' read -r hid _row; do
-        [[ -z "${hid}" ]] && continue
-        if ! grep -F -x -q -- "${hid}" <<< "${HOOK_IDS}"; then
-            echo "DRIFT hook :: mapped rule id '${hid}' no longer present in enforce_constitution.py"
-            errors=$((errors + 1))
-        fi
-    done <<< "${HOOK_MAP}"
-fi
-
-echo
-echo "Checked ${checked} rule(s); ${errors} drift(s)."
-[[ "${errors}" -eq 0 ]] || exit 1
+for skill in sorted(skills.glob('*/SKILL.md')):
+    if skill.parent.name in vendored:
+        continue
+    critical = False
+    fence = None
+    text = re.sub(r'<!--.*?(?:-->|\Z)', lambda m: re.sub(r'[^\n]', ' ', m[0]), skill.read_text(), flags=re.S)
+    for number, line in enumerate(text.splitlines(), 1):
+        marker = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', line)
+        if marker:
+            token, tail = marker.groups()
+            if fence is None:
+                fence = token
+            elif token[0] == fence[0] and len(token) >= len(fence) and not tail.strip():
+                fence = None
+            continue
+        if fence:
+            continue
+        if line.startswith('## '):
+            critical = line.strip() == '## Critical'
+            continue
+        if not critical:
+            continue
+        # Inline code is an example, not a link carrying rule ownership.
+        plain = re.sub(r'(`+)(?!`)(.+?)(?<!`)\1(?!`)', lambda m: ' ' * len(m[0]), line)
+        for match in link_pattern.finditer(plain):
+            target = unquote(match[1].strip('<>'))
+            path, _, anchor = target.partition('#')
+            if not path.endswith('AGENTS.md') or not anchor.startswith('rule-'):
+                continue
+            if (skill.parent / path).resolve() != constitution.resolve() or anchor not in rows:
+                errors.append(f'{skill.relative_to(root)}:{number} :: broken Constitution row link: {target}')
+            else:
+                label = line[match.start() + 1:line.index('](', match.start())]
+                if rendered(label) != rendered(rows[anchor]):
+                    errors.append(f'{skill.relative_to(root)}:{number} :: ownership label differs from row name: {label} != {rows[anchor]}')
+                else:
+                    owners[anchor].add(skill.parent.name)
+for anchor, name in rows.items():
+    if owners[anchor]:
+        if anchor in ALLOW_UNLINKED:
+            errors.append(f'AGENTS.md :: stale coverage exception: {anchor} has an owner')
+        print(f'OK    {name} ({anchor}) :: {", ".join(sorted(owners[anchor]))}')
+    elif anchor in ALLOW_UNLINKED:
+        print(f'ALLOW {name} ({anchor}) :: {ALLOW_UNLINKED[anchor]}')
+    else:
+        errors.append(f'AGENTS.md :: {name} ({anchor}) linked from no skill Critical block')
+for error in errors:
+    print(f'DRIFT {error}')
+print(f'Checked {len(rows)} Constitution row(s); {len(errors)} drift(s).')
+sys.exit(bool(errors))
+PY

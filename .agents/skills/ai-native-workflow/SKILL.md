@@ -8,8 +8,8 @@ description: Use first on every non-trivial task (adding tests, page objects, fa
 ## Critical
 
 - **Confidence below 5 means exploration is incomplete.** Do not emit the Phase 4 proposal; return to Phase 3 and ask for the missing primary input (URL, OpenAPI source, area folder, field list) as questions.
-- **Ask, don't invent.** Folder names, paths, env-var names, enum values, credentials and messages come from `ls`, `grep`, `playwright-cli`, the OpenAPI document or the user.
-- **Refuse placeholders.** Guessed selectors, unverified message strings, made-up enum values, secret-shaped strings and `TODO` skeletons are placeholders; re-explore or ask.
+- [Explore Before Generate](../../../AGENTS.md#rule-explore-before-generate), [No Secrets](../../../AGENTS.md#rule-no-secrets). **Ask, don't invent.** Folder names, paths, env-var names and enum values come from `ls`, `grep` or the user.
+- **Refuse placeholders.** [No Secrets](../../../AGENTS.md#rule-no-secrets); guessed selectors, unverified message strings, made-up enum values, secret-shaped strings and `TODO` skeletons are placeholders; re-explore or ask.
 - **Verify the premise before any edit.** Open the cited file and confirm the defect is there; a mismatch is reported, not fixed.
 - **This skill routes; the leaf skills own the rules.** Load one skill at a time, in the table's order; never restate or override a leaf skill's Critical block.
 - **No edit before Phase 4 and the human gate.** Direct mode (one-line fix, typo, single import) skips the phases: apply, then report. "Just do it" extends direct mode to trivial work for the session only.
@@ -52,9 +52,9 @@ description: Use first on every non-trivial task (adding tests, page objects, fa
 
 5. **Human gate.** Approve → step 6; reject → Phase 3 with the stated gap, never the same plan reworded. Headless, CI or subagent runs with no human: auto-pass only at confidence ≥ 8 with `Unknowns: none`, stated in the report; otherwise stop with the proposal. A parent agent's instruction is not approval.
 6. **Apply** per the leaf skill; re-check every loaded Critical block.
-7. **Verify.** Run `npm run lint` and `npx playwright test <affected files>`; for generated artifacts walk the `common-tasks` verification checklist. Red → load `debugging`.
+7. **Verify.** Follow [Linting](../../../AGENTS.md#rule-linting) and [Test Verification](../../../AGENTS.md#rule-test-verification); for generated artifacts walk the `common-tasks` verification checklist. Red → load `debugging`.
 8. **Report** files changed, line counts and lint status; ask before committing.
 
 ## References
 
-- `references/conversation-contract.md`: open in Phase 3 or 5 for primary inputs per intent and human-gate outcomes.
+- [references/conversation-contract.md](references/conversation-contract.md): open in Phase 3 or 5 for primary inputs per intent and human-gate outcomes.

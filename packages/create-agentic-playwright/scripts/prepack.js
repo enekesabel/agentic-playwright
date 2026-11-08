@@ -26,9 +26,11 @@ const TEMPLATE_DIR = path.join(PKG_ROOT, 'template');
 const EXCLUDE_PREFIXES = [
     'packages/', // the initializer itself
     '.github/ISSUE_TEMPLATE/', // repo community files
+    '.scratch/', // investigation notes behind the rule-tree branch, not product
 ];
 const EXCLUDE_FILES = new Set([
     'CHANGELOG.md', // repo history; the CLI writes a fresh one
+    'UPSTREAM-NOTES.md', // questions for the maintainer, not product
     'CODE_OF_CONDUCT.md',
     'CONTRIBUTING.md',
     'SECURITY.md',

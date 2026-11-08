@@ -11,7 +11,7 @@ Scenarios:
 1. [scenario 1]
 2. [scenario 2]
 
-Follow the test-standards skill (structure, one tag, factory data) and the data-strategy skill.
+Follow the test-standards and data-strategy skills, [No Multiple Tags](../../../../../AGENTS.md#rule-no-multiple-tags) and [Data Generation](../../../../../AGENTS.md#rule-data-generation).
 ```
 
 ## Create an E2E test
@@ -19,7 +19,7 @@ Follow the test-standards skill (structure, one tag, factory data) and the data-
 ```
 Create an E2E test for [USER JOURNEY] at tests/{area}/e2e/[name].spec.ts (run `ls tests/` first).
 
-Walk the journey from [STARTING_URL] with playwright-cli to capture the step sequence, the state at each milestone and the final expected state. One test for the whole journey, tagged @e2e, factory data. Follow the test-standards skill.
+Follow [Explore Before Generate](../../../../../AGENTS.md#rule-explore-before-generate) for [STARTING_URL] to capture the step sequence, the state at each milestone and the final expected state. One test for the whole journey, tagged @e2e; follow [Data Generation](../../../../../AGENTS.md#rule-data-generation) and the test-standards skill.
 ```
 
 ## Add data-driven tests
@@ -40,5 +40,5 @@ Create API tests for [METHOD] [/path]:
 - documented responses: [status codes]
 - area folder: [run `ls tests/` and `ls fixtures/api/schemas/`]
 
-Source the contract from the OpenAPI document and present the coverage plan (every documented status code and what covers it) before writing code. Schema in fixtures/api/schemas/{area}/, endpoint path in enums/{area}/, tag @api. Follow the api-testing skill end to end, including the negative loops and the test.skip + // FIXME protocol for mismatches.
+Follow [Explore Before Generate](../../../../../AGENTS.md#rule-explore-before-generate), [No Silent Coverage Drops](../../../../../AGENTS.md#rule-no-silent-coverage-drops), [Sources of Truth](../../../../../AGENTS.md#rule-sources-of-truth) and [No Empty-Body-Only 400](../../../../../AGENTS.md#rule-no-empty-body-only-400). Present the coverage plan before writing code. Schema in fixtures/api/schemas/{area}/, tag @api. Follow the api-testing skill end to end.
 ```

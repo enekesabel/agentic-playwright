@@ -1,6 +1,6 @@
 # Reporting
 
-Step 7 of `pr-reviewer`. Fill `assets/report-template.md`: tiered findings (🔴 must-fix, 🟠 should-fix, 🟡 minor), a ✅ Good section, the verification results, a verdict with the confidence score, and open questions for the author. Every ❌ from the checklist appears at its tier.
+Step 7 of `pr-reviewer`. Fill [assets/report-template.md](../assets/report-template.md): tiered findings (🔴 must-fix, 🟠 should-fix, 🟡 minor), a ✅ Good section, the verification results, a verdict with the confidence score, and open questions for the author. Every ❌ from the checklist appears at its tier.
 
 ## Confidence score
 

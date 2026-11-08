@@ -11,10 +11,10 @@ description: Use when the user names a branch with any review intent ("review PR
 - **Always the three-dot diff against the remote base** (`git diff "$BASE"...HEAD` with `BASE=origin/<name>`); a two-dot diff reviews commits the author never wrote.
 - **Route every changed path to its skills and read them** before judging; the Constitution applies everywhere.
 - **Run the checks, do not only read**: `scripts/verify-changed.sh` and the affected specs.
-- **The Constitution checklist is a gate before the report**: `scripts/scan-constitution.sh` in this skill's directory, then `references/constitution-checklist.md` with `file:line` evidence; every ❌ is a finding.
+- **The Constitution checklist is a gate before the report**: `scripts/scan-constitution.sh` in this skill's directory, then [references/constitution-checklist.md](references/constitution-checklist.md) with `file:line` evidence; every ❌ is a finding.
 - **Every finding is tied to a rule, a bug or a missing case**; a style opinion without a rule is noise.
-- **Env failures are not branch failures.** A run that dies on a missing env var or token is reported as such; never invent or stub a credential.
-- **A schema loosened to swallow a runtime surprise is a must-fix finding** (`z.strictObject` → `z.object`, `.optional()`, `.nullable()`, `.catchall()`, a widened validator); the sanctioned fix is `test.skip` + `// FIXME`. Never `--approve` or `--request-changes` on the user's behalf.
+- **Env failures are not branch failures.** A run that dies on a missing env var or token is reported as such; [No Secrets](../../../AGENTS.md#rule-no-secrets). Never invent or stub a credential.
+- **A schema loosened to swallow a runtime surprise is a must-fix finding** (`z.strictObject` → `z.object`, `.optional()`, `.nullable()`, `.catchall()`, widened validators; [No Loose Schemas](../../../AGENTS.md#rule-no-loose-schemas)); fix per [No Silent Coverage Drops](../../../AGENTS.md#rule-no-silent-coverage-drops). Never `--approve` or `--request-changes` on the user's behalf.
 
 ## Procedure
 
@@ -38,17 +38,17 @@ description: Use when the user names a branch with any review intent ("review PR
     | `helpers/**`                                               | `helpers`                                         |
     | any `**/*.ts`                                              | `type-safety`                                     |
 
-4. `scripts/verify-changed.sh "$BASE"` (eslint, prettier, tsc on the changed files), then the affected specs per `references/verification.md`.
+4. Follow [Linting](../../../AGENTS.md#rule-linting) with `scripts/verify-changed.sh "$BASE"` (also tsc on the changed files), then [Test Verification](../../../AGENTS.md#rule-test-verification) per [references/verification.md](references/verification.md).
 5. Review the diff against the routed skills: the Constitution rows for the area, contract fidelity, consistency with the nearest sibling file, real bugs (wrong assertion, `.find()` on a possibly empty response, copy-paste leftovers), coverage gaps, scope creep.
 6. Run the scan script, then walk the checklist against the diff; ➖ only when the branch does not touch the area, "could not evaluate" recorded as such, never as ✅.
-7. Report in chat with `assets/report-template.md` and the confidence rubric in `references/reporting.md`; post to the PR only when asked. Then `git switch "$ORIGINAL_REF"`.
+7. Report in chat with [assets/report-template.md](assets/report-template.md) and the confidence rubric in [references/reporting.md](references/reporting.md); post to the PR only when asked. Then `git switch "$ORIGINAL_REF"`.
 8. Offer fixes ("Want me to implement any of these findings?"); apply only the chosen ones per the routed skills, re-run step 4, then ask before committing (Conventional Commit subject, co-author trailer).
 
 ## References
 
-- `references/constitution-checklist.md`: step 6, the 30-row gate.
-- `references/verification.md`: step 4, the tsc detour, running the affected specs, the env limit.
-- `references/reporting.md`: step 7, the confidence rubric and posting to GitHub.
-- `assets/report-template.md`: step 7, the report shape.
-- `assets/review-prompt.md`: a paste-ready invocation for the user.
+- [references/constitution-checklist.md](references/constitution-checklist.md): step 6, the 30-row gate.
+- [references/verification.md](references/verification.md): step 4, the tsc detour, running the affected specs, the env limit.
+- [references/reporting.md](references/reporting.md): step 7, the confidence rubric and posting to GitHub.
+- [assets/report-template.md](assets/report-template.md): step 7, the report shape.
+- [assets/review-prompt.md](assets/review-prompt.md): a paste-ready invocation for the user.
 - `scripts/checkout-branch.sh`, `scripts/verify-changed.sh`, `scripts/scan-constitution.sh`: steps 1, 4 and 6.
